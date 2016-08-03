@@ -1,0 +1,19 @@
+<package>
+  <description brief="table_registration">
+
+     table_registration
+
+  </description>
+  <author>Parallels</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/table_registration</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="message_generation"/>
+  <depend package="sensor_msgs"/>
+  <depend package="mongodb_store"/>
+
+</package>
+
+

@@ -1,0 +1,4 @@
+sensor_msgs/PointCloud2 pointcloud
+---
+primitive_extraction/PrimitiveArray primitives
+primitive_extraction/Indices[] indices

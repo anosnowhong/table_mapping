@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/parallels/ros_ws/src/table_mapping/primitive_extraction/build/devel/setup.sh
