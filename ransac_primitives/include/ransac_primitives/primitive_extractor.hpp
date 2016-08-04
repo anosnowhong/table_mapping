@@ -5,7 +5,6 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/filter.h>
-#include <pcl/io/pcd_io.h>
 
 #define PRINTOUTS true
 
@@ -219,11 +218,13 @@ void primitive_extractor<Point>::extract(std::vector<base_primitive*>& extracted
     int iteration = 0;
     int find_valid_tries = 0;
     do {
-        // pick one point from entire cloud
+        // pick one point from entire cloud (xtion 307200 points)
         int ind = rand() % n; // change to work for clouds > RAND_MAX
+
         if (isnan(cloud->points[ind].x) || isnan(cloud->points[ind].y) || isnan(cloud->points[ind].z)) {
             continue;
         }
+
         if (find_valid_tries > 10000) {
             std::cout << "Can't find a valid shape, done..." << std::endl;
             break;
@@ -566,4 +567,3 @@ void primitive_extractor<Point>::primitive_inlier_points(MatrixXd& points, base_
         points.col(i) = mpoints.col(p->supporting_inds[i]);
     }
 }
-

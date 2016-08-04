@@ -100,9 +100,8 @@ void extract(primitive_extraction::PrimitiveArray& msg_array, std::vector<base_p
     std::vector<int> ind;
     pcl::fromROSMsg(msg, *msg_cloud);
 
-    //TODO: as the poincloud converted is dense (1), but actually it's not,just reset dense to 0.
+    //TODO: morse poincloud converted is dense (1), but actually it's not,just reset dense to 0.
     msg_cloud->is_dense = 0;
-    pcl::removeNaNFromPointCloud(*msg_cloud,*valid_cloud,ind);
 
     ROS_INFO("Got a point cloud of size %lu", msg_cloud->size());
     // Create the filtering object
