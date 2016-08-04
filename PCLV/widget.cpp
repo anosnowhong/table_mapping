@@ -217,6 +217,13 @@ void Widget::on_pushButton_clicked()
 
 void Widget::on_pushButton_2_clicked()
 {
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGBA>);
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open PCD file"), "", tr("PCD Files (*.pcd)"));
-    //qDebug(fileName);
+    std::string pcd_file = fileName.toStdString();
+    pcl::io::loadPCDFile(pcd_file, *cloud_in);
+
+    pcl::visualization::PointCloudColorHandlerRGBField<PointT> whole(cloud_in);
+    if(!viz->updatePointCloud(cloud_in,whole,"loaded_pcd"))
+        viz->addPointCloud(cloud_in, whole,"loaded_pcd");
+    ui->qvtkWidget->update();
 }

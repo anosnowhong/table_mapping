@@ -30,4 +30,9 @@
 
 build/*
 .idea/*
-PCLV/*
+PCLV/build/*
+PCLV/.idea/*
+PCLV/pclv.pro.user
+*.cxx
+
+
