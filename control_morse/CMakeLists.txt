@@ -6,6 +6,8 @@ project(control_morse)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
+  actionlib
+  move_base_msgs
   roscpp
   rospy
 )

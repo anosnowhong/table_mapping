@@ -3,64 +3,104 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <fstream>
+//#include <fstream>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <actionlib/client/simple_action_client.h>
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+
+//generate goal index
+void map_index(double origin[2], float res, int width, int height)
+{
+    double index_bob =  0.8; //bob radius * 2
+    double w_meter = width*res;
+    double h_meter = height*res;
+    double max_num_w = w_meter/index_bob;
+    double max_num_h = h_meter/index_bob;
+
+    std::cout<<origin[1]<<std::endl;
+    std::cout<<origin[2]<<std::endl;
+
+    MoveBaseClient ac("move_base", true);
+    move_base_msgs::MoveBaseGoal goal_index;
+    goal_index.target_pose.header.frame_id="/map";
+    goal_index.target_pose.header.stamp=ros::Time();
+
+    goal_index.target_pose.pose.position.x = origin[1] + index_bob;
+    goal_index.target_pose.pose.position.y = origin[2] + index_bob;
+    goal_index.target_pose.pose.orientation.w=1;
+
+    while(!ac.waitForServer(ros::Duration(5.0))){
+        ROS_INFO("Waiting for the move_base action server to come up...");
+    }
+
+
+    ac.sendGoal(goal_index);
+    ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
+             goal_index.target_pose.pose.position.y);
+    ac.waitForResult();
+
+    if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("goal succeeded");
+    else
+        ROS_INFO("goal failed");
+}
 
 void map_analyzer(nav_msgs::OccupancyGrid &map)
 {
-    int rows = map.info.width;
-    int cols = map.info.height;
+    int rows = map.info.height;
+    int cols = map.info.width;
 
     //create and init map data matrix
     std::vector<std::vector<int> > matrix_map;
-    matrix_map.resize(cols);
-    for(int i=0;i<cols;i++)
-        matrix_map[i].resize(rows);
+    matrix_map.resize(rows);
+    for(int i=0;i<rows;i++)
+        matrix_map[i].resize(cols);
 
     //convert map data to matrix
     int ros_map_cell=0;
-    for(int i=0;i<cols;i++) {
-        for (int j = 0; j < rows; j++) {
+    for(int i=rows-1;i>=0;i--) {
+        for (int j = 0; j<cols; j++) {
             matrix_map[i][j] = map.data[ros_map_cell];
             ros_map_cell++;
         }
     }
 
-    cv::Mat cv_map(cols, rows, CV_8UC1);
-    //cv::Mat origin_map(map.info.width, map.info.height, CV_64F);
+    cv::Mat cv_map(rows, cols, CV_8UC1);
 
-    for(int i=0;i<cols;i++)
+    for(int i=0;i<rows;i++)
     {
-        for(int j=0;j<rows;j++) {
+        for(int j=0;j<cols;j++) {
             if(matrix_map[i][j] == 0)
             {
+                //255 is white
                 cv_map.at<char>(i,j) = 255;
-                //origin_map.at<double>(i,j) = matrix_map[i][j];
+                std::cout<<'1';
             }
             else
             {
+                //0 is black, gray for between 0-255
                 cv_map.at<char>(i,j) = 0;
-                //origin_map.at<double>(i,j) = matrix_map[i][j];
+                std::cout<<'0';
             }
-        }
-    }
-    std::cout<<cv_map<<std::endl;
 
-    /*
-    std::ofstream matrix, cvmat;
-    matrix.open("matrix.txt");
-    matrix<<origin_map;
-    matrix.close();
-    cvmat.open("cvmat.txt");
-    cvmat<<cv_map;
-    cvmat.close();
-     */
+        }
+        std::cout<<std::endl;
+    }
 
     cv::imwrite("cvimg.pgm",cv_map);
-    cv::namedWindow( "ros occupancy map", cv::WINDOW_NORMAL);
-    cv::imshow("ros occupancy map", cv_map);
-    cv::waitKey(0);
+
+    //cv::imshow("ros occupancy map", cv_map);
+    //cv::waitKey(0);
+
+    float res = map.info.resolution;
+    double origin_map[2];
+    origin_map[1]= map.info.origin.position.x;
+    origin_map[2]= map.info.origin.position.y;
+    map_index(origin_map,res,rows, cols);
 
 }
+
+
 
 int main(int argc, char **argv)
 {
