@@ -3,12 +3,72 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
-#include "control_morse/Quadtree.hpp"
+#include <opencv2/flann/flann_base.hpp>
 
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include <opencv2/flann/miniflann.hpp>
+
+#define PRINTOUTS true
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+
+void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map)
+{
+    cv::flann::KDTreeIndexParams index_params;
+    //float vector for kdtree
+    cv::flann::Index kdtree(cv::Mat(pd_arr).reshape(1),index_params);
+
+    //int radius=10; //pixel
+    double radius_square = pow(20*0.05, 2);//meter = (x1-x2)^2 + (y1-y2)^2
+    //query point
+    cv::Point2f p2d;
+    p2d.x=p2d.y=0.0;
+    std::vector<float> query;
+
+    std::vector<int> indices;
+    //squared distance
+    std::vector<float> dists;
+    std::vector<cv::Point2i> free_space;
+
+    //traverse available space
+    for(int i=0;i<cv_map.cols;i++)
+    {
+        //std::cout<<"================: "<<i<<std::endl;
+        for(int j=0;j<cv_map.rows;j++)
+        {
+            p2d.x= j*0.05;
+            p2d.y= i*0.05;
+            //std::cout<<"x: "<<p2d.x<<"y: "<<p2d.y<<std::endl;
+            query.push_back(p2d.x);
+            query.push_back(p2d.y);
+            kdtree.radiusSearch(query,indices,dists,radius_square,100,cv::flann::SearchParams(64));
+            //can find an occupied cell
+            if(indices[1] == 0)
+            {
+                //find a free area
+                std::cout<<"rows: "<<j<<"cols: "<<i<<std::endl;
+                free_space.push_back(cv::Point2i(j,i));
+                //occupy this free area
+            }
+
+            j+=20;//skip 10 pixel(search radius)
+            indices.clear();
+            dists.clear();
+            query.clear();
+
+        }
+        i+=20;
+    }
+
+    if(PRINTOUTS)
+    {
+        std::cout<<"Free space num: "<<free_space.size()<<std::endl;
+        std::copy(indices.begin(),indices.end(),std::ostream_iterator<int>(std::cout, " "));
+        std::cout<<std::endl;
+        std::copy(dists.begin(),dists.end(),std::ostream_iterator<float>(std::cout, " "));
+    }
+
+}
 
 //generate goal index
 void map_index(double origin[2], float res, int width, int height)
@@ -32,7 +92,6 @@ void map_index(double origin[2], float res, int width, int height)
         ROS_INFO("Waiting for the move_base action server to come up...");
     }
 
-
     ac.sendGoal(goal_index);
     ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
              goal_index.target_pose.pose.position.y);
@@ -44,6 +103,30 @@ void map_index(double origin[2], float res, int width, int height)
         ROS_INFO("goal failed");
 }
 
+//convert mat to 2D points(in meter)
+void cvmat2points(cv::Mat &mm, std::vector<cv::Point2f> &pd_arr)
+{
+    cv::Point2f tmp;
+    for(int i=0;i<mm.rows;i++)
+    {
+        for(int j=0;j<mm.cols;j++) {
+            //1 means free cell
+            if (mm.at<char>(i, j) == 0)
+            {
+                //usr index as coordinate
+                tmp.x=i * 0.05;
+                tmp.y=j * 0.05;
+                pd_arr.push_back(tmp);
+            }
+        }
+    }
+    if(PRINTOUTS)
+    {
+        //ROS_INFO("%u",mm.at<char>(i,j));
+        //std::cout<<"points are: "<<pd_arr<<std::endl;
+        std::cout<<"Got "<<pd_arr.size()<<" occupied points in map."<<std::endl;
+    }
+}
 
 //convert ros map data to cv mat
 void map_analyzer(nav_msgs::OccupancyGrid &map)
@@ -68,13 +151,14 @@ void map_analyzer(nav_msgs::OccupancyGrid &map)
 
     cv::Mat cv_map(rows, cols, CV_8UC1);
 
+    //convert matrix to 0 and 1 cv::Mat
     for(int i=0;i<rows;i++)
     {
         for(int j=0;j<cols;j++) {
             if(matrix_map[i][j] == 0)
             {
-                //255 is white
-                cv_map.at<char>(i,j) = 255;
+                //255 is white, 1 for convenient
+                cv_map.at<char>(i,j) = 1;
                 //std::cout<<'1';
             }
             else
@@ -83,16 +167,17 @@ void map_analyzer(nav_msgs::OccupancyGrid &map)
                 cv_map.at<char>(i,j) = 0;
                 //std::cout<<'0';
             }
-
         }
-        //std::cout<<std::endl;
     }
 
-    //cv::imwrite("cvimg.pgm",cv_map);
+    cv::imwrite("cvimg.pgm",cv_map);
     //cv::imshow("ros occupancy map", cv_map);
     //cv::waitKey(0);
-    Quadtree qtree(0,0,100,100,0,2);
 
+    std::vector<cv::Point2f> map_points;
+    cvmat2points(cv_map, map_points);
+    map_kdtree(map_points, cv_map);
+    return;
 
     float res = map.info.resolution;
     double origin_map[2];
@@ -105,7 +190,6 @@ void map_analyzer(nav_msgs::OccupancyGrid &map)
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "getmap");
-
 
     ros::NodeHandle n;
     ros::ServiceClient client = n.serviceClient<nav_msgs::GetMap>("static_map");
