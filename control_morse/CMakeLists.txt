@@ -13,6 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
+
+include_directories(include)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -145,6 +150,7 @@ add_executable(getmap src/getmap.cpp)
 target_link_libraries(getmap
   ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
+        ${VTK_LIBRARIES}
 )
 
 #############

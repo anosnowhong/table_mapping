@@ -3,7 +3,9 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-//#include <fstream>
+
+#include "control_morse/Quadtree.hpp"
+
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -17,15 +19,12 @@ void map_index(double origin[2], float res, int width, int height)
     double max_num_w = w_meter/index_bob;
     double max_num_h = h_meter/index_bob;
 
-    std::cout<<origin[1]<<std::endl;
-    std::cout<<origin[2]<<std::endl;
-
     MoveBaseClient ac("move_base", true);
     move_base_msgs::MoveBaseGoal goal_index;
     goal_index.target_pose.header.frame_id="/map";
     goal_index.target_pose.header.stamp=ros::Time();
 
-    goal_index.target_pose.pose.position.x = origin[1] + index_bob;
+    goal_index.target_pose.pose.position.x = 3.0;
     goal_index.target_pose.pose.position.y = origin[2] + index_bob;
     goal_index.target_pose.pose.orientation.w=1;
 
@@ -45,6 +44,8 @@ void map_index(double origin[2], float res, int width, int height)
         ROS_INFO("goal failed");
 }
 
+
+//convert ros map data to cv mat
 void map_analyzer(nav_msgs::OccupancyGrid &map)
 {
     int rows = map.info.height;
@@ -74,37 +75,37 @@ void map_analyzer(nav_msgs::OccupancyGrid &map)
             {
                 //255 is white
                 cv_map.at<char>(i,j) = 255;
-                std::cout<<'1';
+                //std::cout<<'1';
             }
             else
             {
                 //0 is black, gray for between 0-255
                 cv_map.at<char>(i,j) = 0;
-                std::cout<<'0';
+                //std::cout<<'0';
             }
 
         }
-        std::cout<<std::endl;
+        //std::cout<<std::endl;
     }
 
-    cv::imwrite("cvimg.pgm",cv_map);
-
+    //cv::imwrite("cvimg.pgm",cv_map);
     //cv::imshow("ros occupancy map", cv_map);
     //cv::waitKey(0);
+    Quadtree qtree(0,0,100,100,0,2);
+
 
     float res = map.info.resolution;
     double origin_map[2];
     origin_map[1]= map.info.origin.position.x;
     origin_map[2]= map.info.origin.position.y;
-    map_index(origin_map,res,rows, cols);
+    map_index(origin_map,res,cols, rows);
 
 }
-
-
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "getmap");
+
 
     ros::NodeHandle n;
     ros::ServiceClient client = n.serviceClient<nav_msgs::GetMap>("static_map");
