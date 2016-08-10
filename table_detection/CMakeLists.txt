@@ -15,9 +15,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3)
 include_directories(${Eigen_INCLUDE_DIRS})
 
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -58,6 +62,7 @@ include_directories(${Eigen_INCLUDE_DIRS})
 add_service_files(
   FILES
   DetectTables.srv
+  ROIcloud.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -110,6 +115,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(detection src/detection.cpp)
+add_executable(grabber src/grabber.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -119,6 +125,10 @@ add_dependencies(detection primitive_extraction_generate_messages_cpp primitives
 target_link_libraries(detection
   ${catkin_LIBRARIES}
 )
+target_link_libraries(grabber
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
 
 #############
 ## Install ##
