@@ -1,44 +1,44 @@
 #include <ros/ros.h>
 #include <nav_msgs/GetMap.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <visualization_msgs/MarkerArray.h>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/flann/flann_base.hpp>
+#include <opencv2/flann/miniflann.hpp>
 
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
-#include <opencv2/flann/miniflann.hpp>
+#include <signal.h>
 
 #define PRINTOUTS true
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+ros::Publisher vis_pub;
 
-void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map)
+void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<cv::Point2i> &free_space, int search_range)
 {
     cv::flann::KDTreeIndexParams index_params;
     //float vector for kdtree
     cv::flann::Index kdtree(cv::Mat(pd_arr).reshape(1),index_params);
 
-    //int radius=10; //pixel
-    double radius_square = pow(20*0.05, 2);//meter = (x1-x2)^2 + (y1-y2)^2
+    int radius=search_range; //pixel
+    double radius_square = pow(search_range*0.05, 2);//meter = (x1-x2)^2 + (y1-y2)^2
     //query point
     cv::Point2f p2d;
     p2d.x=p2d.y=0.0;
     std::vector<float> query;
-
     std::vector<int> indices;
     //squared distance
     std::vector<float> dists;
-    std::vector<cv::Point2i> free_space;
 
     //traverse available space
     for(int i=0;i<cv_map.cols;i++)
     {
-        //std::cout<<"================: "<<i<<std::endl;
         for(int j=0;j<cv_map.rows;j++)
         {
             p2d.x= j*0.05;
             p2d.y= i*0.05;
-            //std::cout<<"x: "<<p2d.x<<"y: "<<p2d.y<<std::endl;
             query.push_back(p2d.x);
             query.push_back(p2d.y);
             kdtree.radiusSearch(query,indices,dists,radius_square,100,cv::flann::SearchParams(64));
@@ -47,17 +47,16 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map)
             {
                 //find a free area
                 std::cout<<"rows: "<<j<<"cols: "<<i<<std::endl;
-                free_space.push_back(cv::Point2i(j,i));
-                //occupy this free area
+                free_space.push_back(cv::Point2i(i,j));
             }
 
-            j+=20;//skip 10 pixel(search radius)
+            j+=search_range;//skip 20 pixel(search radius)
             indices.clear();
             dists.clear();
             query.clear();
 
         }
-        i+=20;
+        i+=search_range;
     }
 
     if(PRINTOUTS)
@@ -70,8 +69,9 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map)
 
 }
 
+
 //generate goal index
-void map_index(double origin[2], float res, int width, int height)
+void map_index(double origin[2], float res, int width, int height, std::vector<cv::Point2i> &free_space, int search_range)
 {
     double index_bob =  0.8; //bob radius * 2
     double w_meter = width*res;
@@ -79,28 +79,68 @@ void map_index(double origin[2], float res, int width, int height)
     double max_num_w = w_meter/index_bob;
     double max_num_h = h_meter/index_bob;
 
-    MoveBaseClient ac("move_base", true);
-    move_base_msgs::MoveBaseGoal goal_index;
-    goal_index.target_pose.header.frame_id="/map";
-    goal_index.target_pose.header.stamp=ros::Time();
+    //viz_markers(origin, free_space, height);
 
-    goal_index.target_pose.pose.position.x = 3.0;
-    goal_index.target_pose.pose.position.y = origin[2] + index_bob;
-    goal_index.target_pose.pose.orientation.w=1;
+    visualization_msgs::MarkerArray mark_arr;
+    mark_arr.markers.resize(free_space.size());
+    for(int i=0;i<free_space.size();i++)
+    {
+        mark_arr.markers[i].header.frame_id="/map";
+        mark_arr.markers[i].header.stamp = ros::Time();
+        mark_arr.markers[i].ns = "waypoint";
+        mark_arr.markers[i].id = i;
+        mark_arr.markers[i].type=visualization_msgs::Marker::CYLINDER;
+        mark_arr.markers[i].action= visualization_msgs::Marker::ADD;
+        //in meter
+        mark_arr.markers[i].pose.position.x = origin[0]+free_space[i].x*0.05;
+        //upside down
+        mark_arr.markers[i].pose.position.y = origin[1]+(height-free_space[i].y)*0.05;
+        mark_arr.markers[i].pose.position.z = 1;
+        mark_arr.markers[i].pose.orientation.x = 0;
+        mark_arr.markers[i].pose.orientation.y = 0;
+        mark_arr.markers[i].pose.orientation.z = 0;
+        mark_arr.markers[i].pose.orientation.w = 1;
 
-    while(!ac.waitForServer(ros::Duration(5.0))){
-        ROS_INFO("Waiting for the move_base action server to come up...");
+        //x=y=1 => 1meter,
+        double ratio = 1.0/(search_range*0.05*2);
+        mark_arr.markers[i].scale.x = 1*ratio;
+        mark_arr.markers[i].scale.y = 1*ratio;
+        mark_arr.markers[i].scale.z = 0.1;
+        mark_arr.markers[i].color.a = 1.0;
+        mark_arr.markers[i].color.r = 1.0;
+        mark_arr.markers[i].color.g = 0.0;
+        mark_arr.markers[i].color.b = 0.0;
     }
+    vis_pub.publish(mark_arr);
 
-    ac.sendGoal(goal_index);
-    ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
-             goal_index.target_pose.pose.position.y);
-    ac.waitForResult();
+    //publish index positon one by one
+    for(int i=0;i<free_space.size();i++)
+    {
+        MoveBaseClient ac("move_base", true);
+        move_base_msgs::MoveBaseGoal goal_index;
+        goal_index.target_pose.header.frame_id="/map";
+        goal_index.target_pose.header.stamp=ros::Time();
 
-    if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-        ROS_INFO("goal succeeded");
-    else
-        ROS_INFO("goal failed");
+        std::cout<<free_space[i].x<<" "<<free_space[i].y<<std::endl;
+        goal_index.target_pose.pose.position.x = origin[0] + free_space[i].x * res;
+        goal_index.target_pose.pose.position.y = origin[1] + (height-free_space[i].y) * res;
+        goal_index.target_pose.pose.orientation.w=1;
+
+        while(!ac.waitForServer(ros::Duration(5.0))){
+            ROS_INFO("Waiting for the move_base action server to come up...");
+        }
+
+        ac.sendGoal(goal_index);
+        ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
+                 goal_index.target_pose.pose.position.y);
+        //set time to wait
+        ac.waitForResult(ros::Duration(60));
+
+        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+            ROS_INFO("goal succeeded");
+        else
+            ROS_INFO("goal failed");
+    }
 }
 
 //convert mat to 2D points(in meter)
@@ -128,8 +168,13 @@ void cvmat2points(cv::Mat &mm, std::vector<cv::Point2f> &pd_arr)
     }
 }
 
+void sig_shutdown(int sig)
+{
+    ros::shutdown();
+}
+
 //convert ros map data to cv mat
-void map_analyzer(nav_msgs::OccupancyGrid &map)
+void map_analyzer(nav_msgs::OccupancyGrid &map, int search_range)
 {
     int rows = map.info.height;
     int cols = map.info.width;
@@ -170,42 +215,57 @@ void map_analyzer(nav_msgs::OccupancyGrid &map)
         }
     }
 
-    cv::imwrite("cvimg.pgm",cv_map);
+    //cv::imwrite("cvimg.pgm",cv_map);
     //cv::imshow("ros occupancy map", cv_map);
     //cv::waitKey(0);
 
     std::vector<cv::Point2f> map_points;
     cvmat2points(cv_map, map_points);
-    map_kdtree(map_points, cv_map);
-    return;
+    std::vector<cv::Point2i> free_index;
+    map_kdtree(map_points, cv_map, free_index, search_range);
 
+    //map info that stored in *.yaml file
     float res = map.info.resolution;
     double origin_map[2];
-    origin_map[1]= map.info.origin.position.x;
-    origin_map[2]= map.info.origin.position.y;
-    map_index(origin_map,res,cols, rows);
+    origin_map[0]= map.info.origin.position.x;
+    origin_map[1]= map.info.origin.position.y;
+    map_index(origin_map,res,cols,rows,free_index,search_range);
 
+    //sig_shutdown(SIGINT);
 }
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "getmap");
+    ros::init(argc, argv, "map_analyzer");
 
     ros::NodeHandle n;
-    ros::ServiceClient client = n.serviceClient<nav_msgs::GetMap>("static_map");
+    signal(SIGINT, sig_shutdown);
+    ros::NodeHandle pn("~");
+    ros::Rate r(1);
 
+    //get params
+    int search_range;
+    pn.param<int>("/search_range", search_range, 20);
+
+    vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
+    ros::ServiceClient client = n.serviceClient<nav_msgs::GetMap>("static_map");
     nav_msgs::GetMap srv;
     nav_msgs::OccupancyGrid map_data;
 
+
+    while (ros::ok())
+    {
     if (client.call(srv))
     {
         map_data = srv.response.map;
-        map_analyzer(map_data);
+        map_analyzer(map_data, search_range);
     }
     else
     {
         ROS_ERROR("Failed to call service GetMap");
         return 1;
     }
-    return 0;
+
+        r.sleep();
+    }
 }

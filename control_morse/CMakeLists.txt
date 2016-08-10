@@ -138,6 +138,7 @@ include_directories(
 ## Declare a C++ executable
 # add_executable(trash_node src/trash_node.cpp)
 add_executable(getmap src/getmap.cpp)
+add_executable(vizmarker src/vizmarker.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -152,6 +153,9 @@ target_link_libraries(getmap
         ${OpenCV_LIBS}
         ${VTK_LIBRARIES}
 )
+target_link_libraries(vizmarker
+        ${catkin_LIBRARIES}
+        )
 
 #############
 ## Install ##
