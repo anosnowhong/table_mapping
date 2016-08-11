@@ -5,12 +5,12 @@ project(control_morse)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  nav_msgs
-  actionlib
-  move_base_msgs
-  roscpp
-  rospy
-)
+	nav_msgs
+	actionlib
+	move_base_msgs
+	roscpp
+	rospy
+	)
 
 find_package(OpenCV REQUIRED)
 find_package(VTK REQUIRED)
@@ -58,12 +58,11 @@ include_directories(include)
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+# Generate services in the 'srv' folder
+add_service_files(
+	FILES
+	Pause.srv
+	)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -72,11 +71,12 @@ include_directories(include)
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   nav_msgs
-# )
+# Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+   nav_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,11 +108,11 @@ include_directories(include)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES trash
-#  CATKIN_DEPENDS nav_msgs roscpp rospy
-#  DEPENDS system_lib
-)
+	#  INCLUDE_DIRS include
+	#  LIBRARIES trash
+	#  CATKIN_DEPENDS nav_msgs roscpp rospy
+	#  DEPENDS system_lib
+	)
 
 ###########
 ## Build ##
@@ -122,8 +122,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
+	${catkin_INCLUDE_DIRS}
+	)
 
 ## Declare a C++ library
 # add_library(trash
@@ -149,13 +149,13 @@ add_executable(vizmarker src/vizmarker.cpp)
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(getmap
-  ${catkin_LIBRARIES}
-        ${OpenCV_LIBS}
-        ${VTK_LIBRARIES}
-)
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	${VTK_LIBRARIES}
+	)
 target_link_libraries(vizmarker
-        ${catkin_LIBRARIES}
-        )
+	${catkin_LIBRARIES}
+	)
 
 #############
 ## Install ##

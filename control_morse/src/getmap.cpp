@@ -1,6 +1,5 @@
 #include <ros/ros.h>
 #include <nav_msgs/GetMap.h>
-#include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <opencv2/core/core.hpp>
@@ -12,9 +11,20 @@
 #include <actionlib/client/simple_action_client.h>
 #include <signal.h>
 
+#include <table_detection/ROIcloud.h>
+#include <control_morse/Pause.h>
+#include <nav_msgs/Odometry.h>
+
 #define PRINTOUTS true
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 ros::Publisher vis_pub;
+ros::Rate *r;
+ros::ServiceClient grab_srv;
+ros::ServiceClient client;
+table_detection::ROIcloud grab_cloud;
+bool state_pause=false;
+int search_range;
+MoveBaseClient *ac;
 
 void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<cv::Point2i> &free_space, int search_range)
 {
@@ -69,7 +79,6 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<
 
 }
 
-
 //generate goal index
 void map_index(double origin[2], float res, int width, int height, std::vector<cv::Point2i> &free_space, int search_range)
 {
@@ -116,7 +125,8 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
     //publish index positon one by one
     for(int i=0;i<free_space.size();i++)
     {
-        MoveBaseClient ac("move_base", true);
+
+
         move_base_msgs::MoveBaseGoal goal_index;
         goal_index.target_pose.header.frame_id="/map";
         goal_index.target_pose.header.stamp=ros::Time();
@@ -126,22 +136,31 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         goal_index.target_pose.pose.position.y = origin[1] + (height-free_space[i].y) * res;
         goal_index.target_pose.pose.orientation.w=1;
 
-        while(!ac.waitForServer(ros::Duration(5.0))){
+        while(!ac->waitForServer(ros::Duration(5.0))){
             ROS_INFO("Waiting for the move_base action server to come up...");
         }
 
-        ac.sendGoal(goal_index);
+        ac->sendGoal(goal_index);
         ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
                  goal_index.target_pose.pose.position.y);
         //set time to wait
-        ac.waitForResult(ros::Duration(60));
+        ac->waitForResult(ros::Duration(60));
 
-        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-            ROS_INFO("goal succeeded");
+        if(ac->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        {
+            ROS_INFO("goal succeeded, scanning...");
+            grab_srv.call(grab_cloud);
+            //TODO: run other node check database and do the registration work
+        }
         else
+        {
             ROS_INFO("goal failed");
+            ac->cancelGoal();
+        }
     }
+
 }
+
 
 //convert mat to 2D points(in meter)
 void cvmat2points(cv::Mat &mm, std::vector<cv::Point2f> &pd_arr)
@@ -234,38 +253,77 @@ void map_analyzer(nav_msgs::OccupancyGrid &map, int search_range)
     //sig_shutdown(SIGINT);
 }
 
-int main(int argc, char **argv)
+bool pause_action(control_morse::Pause::Request &req, control_morse::Pause::Response & res)
 {
-    ros::init(argc, argv, "map_analyzer");
+    state_pause = req.Paused;
+    ROS_INFO("Pause Flag has been set");
+    return true;
+}
 
-    ros::NodeHandle n;
-    signal(SIGINT, sig_shutdown);
-    ros::NodeHandle pn("~");
-    ros::Rate r(1);
-
-    //get params
-    int search_range;
-    pn.param<int>("/search_range", search_range, 20);
-
-    vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
-    ros::ServiceClient client = n.serviceClient<nav_msgs::GetMap>("static_map");
-    nav_msgs::GetMap srv;
-    nav_msgs::OccupancyGrid map_data;
-
-
-    while (ros::ok())
+//just a loop thread for pause_action
+void pause_thread(sensor_msgs::PointCloud2 d1)
+{
+    //if pause service is called, then stop action
+    if(state_pause)
     {
-    if (client.call(srv))
-    {
-        map_data = srv.response.map;
-        map_analyzer(map_data, search_range);
+        ROS_INFO("puase request received, pausing robot...");
+        //MoveBaseClient ac_pause("move_base", true);
+        //move_base_msgs::MoveBaseGoal empty_goal;
+        //ac_pause.sendGoal(empty_goal);
+        ac->cancelGoal();
+        sleep(1);
+        state_pause=false;
     }
     else
     {
-        ROS_ERROR("Failed to call service GetMap");
-        return 1;
+        sleep(1);
     }
+}
 
-        r.sleep();
+void main_thread(sensor_msgs::PointCloud2 d2)
+{
+
+    nav_msgs::GetMap srv;
+    nav_msgs::OccupancyGrid map_data;
+
+    while (ros::ok())
+    {
+        if (client.call(srv))
+        {
+            map_data = srv.response.map;
+            map_analyzer(map_data, search_range);
+        }
+        else
+        {
+            ROS_ERROR("Failed to call service GetMap");
+        }
+
+        r->sleep();
     }
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "map_analyzer");
+    ros::NodeHandle n;
+    signal(SIGINT, sig_shutdown);
+    ros::NodeHandle pn("~");
+
+    ros::Rate rr(10);
+    r = &rr;
+    ac = new MoveBaseClient("move_base", true);
+
+    ros::MultiThreadedSpinner spinner(4);
+    //get params
+    pn.param<int>("/search_range", search_range, 20);
+
+    vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
+    ros::ServiceServer server = n.advertiseService("pause_morse", pause_action);
+    grab_srv = n.serviceClient<table_detection::ROIcloud>("ROIcloud");
+    client  = n.serviceClient<nav_msgs::GetMap>("static_map");
+
+    ros::Subscriber sub = n.subscribe("/head_xtion/depth/points",1,pause_thread);
+    ros::Subscriber sub2 = n.subscribe("/head_xtion/depth/points",1,main_thread);
+
+    spinner.spin();
 }

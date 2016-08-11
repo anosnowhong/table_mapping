@@ -1,0 +1,16 @@
+<launch>
+
+    <!-- provide service for getmap, and publish ROI cloud -->
+    <node pkg="table_detection" type="grabber" name="grabber" output="screen">
+    </node>
+
+    <!--soma_io node communicate with mongoDB to store the ROI cloud for later use -->
+	<!--data is stored in message_store=>ws_observation (including PC2, Octomap and TF)-->
+    <node pkg="table_detection" type="grabber" name="grabber" output="screen">
+    </node>
+
+    <!-- launch map processing node, get the patrol goal and mark on the map-->
+    <node pkg="control_morse" type="getmap" name="getmap" output="screen">
+    </node>
+    
+</launch>
