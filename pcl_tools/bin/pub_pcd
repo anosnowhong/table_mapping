@@ -1,0 +1,2 @@
+#!/bin/zsh
+rosrun pcl_ros pcd_to_pointcloud /home/parallels/ros_ws/src/table_mapping/pcl_tools/intermediate_cloud0005.pcd

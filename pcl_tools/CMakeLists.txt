@@ -10,8 +10,11 @@ add_definitions(${PCL_DEFINITIONS})
 
 include_directories(include)
 
-set(SOURCE_FILES
-    src/remove_nan.cpp)
 
-add_executable(nan_remove ${SOURCE_FILES})
+set(CMAKE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+add_executable(nan_remove ${CMAKE_CURRENT_SOURCE_DIR}/remove_nan.cpp)
 target_link_libraries(nan_remove ${PCL_LIBRARIES})
+
+add_executable(force_dense ${CMAKE_CURRENT_SOURCE_DIR}/force_dense.cpp)
+target_link_libraries(force_dense ${PCL_LIBRARIES})
