@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-#include <boost/foreach.hpp>
+//#include <boost/foreach.hpp>
 #include <sensor_msgs/PointCloud2.h>
 #include <table_detection/ROIcloud.h>
 
@@ -9,8 +9,10 @@
 //#include <boost/lexical_cast.hpp>
 
 
-#define DBUG true
+#define DBUG false
 pcl::PointCloud<pcl::PointXYZ>::Ptr msg_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+ros::Publisher pub;
+boost::mutex cloud_mutex;
 
 sensor_msgs::PointCloud2 grabed_pc;
 int srv_count;
@@ -22,11 +24,15 @@ void callback(const sensor_msgs::PointCloud2 &msg)
         pcl::fromROSMsg(msg, *msg_cloud);
     }
     grabed_pc = msg;
+    //special condition: force point cloud from morse to false as they does contain nan point
+    grabed_pc.is_dense=false;
+
     sleep(1);
 }
 
 bool grab_pc2(table_detection::ROIcloud::Request &req, table_detection::ROIcloud::Response &res)
 {
+    //cloud_mutex.try_lock();
     res.pointcloud = grabed_pc;
 
     if(DBUG)
@@ -37,6 +43,8 @@ bool grab_pc2(table_detection::ROIcloud::Request &req, table_detection::ROIcloud
         pcl::io::savePCDFileASCII(name, *msg_cloud);
         srv_count++;
     }
+    pub.publish(grabed_pc);
+    //cloud_mutex.unlock();
     return true;
 }
 
@@ -47,6 +55,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     ros::Subscriber sub = nh.subscribe("/head_xtion/depth/points", 1, callback);
+    pub = nh.advertise<sensor_msgs::PointCloud2>("/pointcloud/tomongo", 1);
     ros::ServiceServer server = nh.advertiseService("ROIcloud", grab_pc2);
     srv_count = 0;
 
