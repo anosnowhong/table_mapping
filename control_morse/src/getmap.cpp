@@ -11,17 +11,17 @@
 #include <actionlib/client/simple_action_client.h>
 #include <signal.h>
 
-#include <table_detection/ROIcloud.h>
+//#include <table_detection/ROIcloud.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <control_morse/Pause.h>
 #include <nav_msgs/Odometry.h>
 
 #define PRINTOUTS true
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 ros::Publisher vis_pub;
-ros::Rate *r;
-ros::ServiceClient grab_srv;
+//ros::ServiceClient grab_srv;
 ros::ServiceClient client;
-table_detection::ROIcloud grab_cloud;
+//table_detection::ROIcloud grab_cloud;
 bool state_pause=false;
 int search_range;
 MoveBaseClient *ac;
@@ -59,6 +59,9 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<
                 std::cout<<"rows: "<<j<<"cols: "<<i<<std::endl;
                 free_space.push_back(cv::Point2i(i,j));
             }
+
+            //Debug push all the cell
+            //free_space.push_back(cv::Point2i(i,j));
 
             j+=search_range;//skip 20 pixel(search radius)
             indices.clear();
@@ -111,9 +114,9 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         mark_arr.markers[i].pose.orientation.w = 1;
 
         //x=y=1 => 1meter,
-        double ratio = 1.0/(search_range*0.05*2);
-        mark_arr.markers[i].scale.x = 1*ratio;
-        mark_arr.markers[i].scale.y = 1*ratio;
+        double ratio = (search_range*0.05*2)/1.0;//(radius * 2)/default_marker_length
+        mark_arr.markers[i].scale.x = 0.5*ratio;
+        mark_arr.markers[i].scale.y = 0.5*ratio;
         mark_arr.markers[i].scale.z = 0.1;
         mark_arr.markers[i].color.a = 1.0;
         mark_arr.markers[i].color.r = 1.0;
@@ -125,8 +128,6 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
     //publish index positon one by one
     for(int i=0;i<free_space.size();i++)
     {
-
-
         move_base_msgs::MoveBaseGoal goal_index;
         goal_index.target_pose.header.frame_id="/map";
         goal_index.target_pose.header.stamp=ros::Time();
@@ -149,7 +150,7 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         if(ac->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
             ROS_INFO("goal succeeded, scanning...");
-            grab_srv.call(grab_cloud);
+            //grab_srv.call(grab_cloud);
             //TODO: run other node check database and do the registration work
         }
         else
@@ -298,7 +299,7 @@ void main_thread(sensor_msgs::PointCloud2 d2)
             ROS_ERROR("Failed to call service GetMap");
         }
 
-        r->sleep();
+        sleep(1);
     }
 }
 
@@ -309,17 +310,15 @@ int main(int argc, char **argv)
     signal(SIGINT, sig_shutdown);
     ros::NodeHandle pn("~");
 
-    ros::Rate rr(10);
-    r = &rr;
     ac = new MoveBaseClient("move_base", true);
 
-    ros::MultiThreadedSpinner spinner(4);
+    ros::MultiThreadedSpinner spinner(3);
     //get params
     pn.param<int>("/search_range", search_range, 20);
 
     vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
     ros::ServiceServer server = n.advertiseService("pause_morse", pause_action);
-    grab_srv = n.serviceClient<table_detection::ROIcloud>("ROIcloud");
+    //grab_srv = n.serviceClient<table_detection::ROIcloud>("ROIcloud");
     client  = n.serviceClient<nav_msgs::GetMap>("static_map");
 
     ros::Subscriber sub = n.subscribe("/head_xtion/depth/points",1,pause_thread);

@@ -14,12 +14,7 @@
 	</node>
 
     <!-- Provide PTU control service to do a 'whole' or 'single' scan-->
-	<node pkg="control_morse" type="ptu_control" name="ptu_control", output="screen">
+	<node pkg="control_morse" type="ptu_control" name="ptu_control" output="screen">
 	</node>
 
-
-    <!-- launch map processing node, get the patrol goal and mark on the map-->
-    <node pkg="control_morse" type="getmap" name="getmap" output="screen">
-    </node>
-    
 </launch>

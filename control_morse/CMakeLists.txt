@@ -62,6 +62,7 @@ include_directories(include)
 add_service_files(
 	FILES
 	Pause.srv
+    WholeScan.srv
 	)
 
 ## Generate actions in the 'action' folder
@@ -139,6 +140,7 @@ include_directories(
 # add_executable(trash_node src/trash_node.cpp)
 add_executable(getmap src/getmap.cpp)
 add_executable(vizmarker src/vizmarker.cpp)
+add_executable(ptu_control src/ptu_control.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -153,10 +155,14 @@ target_link_libraries(getmap
 	${OpenCV_LIBS}
 	${VTK_LIBRARIES}
 	)
+
 target_link_libraries(vizmarker
 	${catkin_LIBRARIES}
 	)
 
+target_link_libraries(ptu_control
+		${catkin_LIBRARIES}
+		)
 #############
 ## Install ##
 #############
