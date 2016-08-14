@@ -1,9 +1,20 @@
 #include <mongodb_store/message_store.h>
 #include <geometry_msgs/Pose.h>
-#include <zlib.h>
-
-#include <boost/foreach.hpp>
+#include <geometry_msgs/TransformStamped.h>
+//#include <algorithm>
+#include "table_registration/registration_operator.hpp"
 #include <sensor_msgs/PointCloud2.h>
+
+
+typedef boost::shared_ptr<geometry_msgs::TransformStamped>  TransformStampedPtr;
+typedef boost::shared_ptr<sensor_msgs::PointCloud2> PointCloud2Ptr;
+
+bool compare_tf(const TransformStampedPtr &x1, const TransformStampedPtr &x2)
+{
+    return (x1->header.seq<x2->header.seq);
+}
+
+
 
 
 int main(int argc, char** argv)
@@ -13,54 +24,51 @@ int main(int argc, char** argv)
     mongodb_store::MessageStoreProxy messageStore(nh,"ws_observations");
     std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
     //tf info was pickled, need unpickle before use
-    std::vector< boost::shared_ptr<mongodb_store_msgs::SerialisedMessage> > result_tf;
+    std::vector< boost::shared_ptr<geometry_msgs::TransformStamped> > result_tf;
 
     //search all point clouds
     messageStore.query<sensor_msgs::PointCloud2>(result_pc2);
+    //get all the tf transformation
+    messageStore.query<geometry_msgs::TransformStamped>(result_tf);
 
-    std::cout<<result_pc2.size()<<std::endl;
+    std::cout<<"pc2: "<<result_pc2.size()<<std::endl;
+    std::cout<<"tf: "<<result_tf.size()<<std::endl;
 
     //BOOST_FOREACH( boost::shared_ptr<sensor_msgs::PointCloud2> pc2, result_pc2){
                     //ROS_INFO_STREAM("gooooo"<<*pc2);
                 //}
 
-    //get all the tf transformation & uncompress msg
-    messageStore.query<mongodb_store_msgs::SerialisedMessage>(result_tf);
-    //ROS_INFO_STREAM("goooooooo"<<*result_tf[0]);
-    z_stream stream_tf;
-    stream_tf.zalloc = Z_NULL;
-    stream_tf.zfree = Z_NULL;
-    stream_tf.opaque = Z_NULL;
-
-
-    std::string compressed_str;
-    for(int i=0;i<result_tf[0]->msg.size();i++){
-
-        compressed_str+=result_tf[0]->msg[i];
-        std::cout<<result_tf[0]->msg[i];
-    }
+    //ROS_INFO_STREAM(*result_tf[0]);
     std::cout<<std::endl;
 
-    uLongf outputsize=1000;
-    std::vector<Bytef> output(1000);
-    const Bytef *input = reinterpret_cast<const Bytef*>(compressed_str.c_str());
-    int result;
-    while((result=uncompress(&output.front(), &outputsize, input, compressed_str.length())) == Z_BUF_ERROR)
-    {
-        outputsize*=2;
-        output.resize(outputsize);
-    }
-
-    std::cout<<compressed_str<<std::endl;
-
-
-    for(int i=0;i<output.size();i++)
-    {
-        std::cout<<output[i];
-    }
-
+    //std::cout<<result_tf[0]->header.stamp<<std::endl;
 
     // sort by time, match point cloud and tf transformation
     //result_pc2[0]->
+    //auto tmp_lambda = [](auto a, auto&&b){return a<b?a:b; };
+
+    /*
+    std::sort(result_tf.begin(), result_tf.end(),
+              [](const TransformStampedPtr& x1, const TransformStampedPtr& x2){
+        return (x1->header.seq < x2->header.seq);
+    });
+     */
+
+    //std::sort(result_tf.begin(), result_tf.end(), compare_tf);
+
+    result_tf[0]->transform.translation;
+    result_tf[0]->transform.rotation;
+
+    //trans_m = trans_to_matrix(result_tf[0]->transform.translation);
+    //rot_m = rot_to_matrix(result_tf[0]->transform.rotation);
+
+
+    //load point cloud data to pcl::PointCloud2
+
+
+
+    //do the transformation things
+
+    //save and visualization
     return 0;
 }

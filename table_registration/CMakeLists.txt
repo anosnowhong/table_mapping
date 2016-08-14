@@ -11,9 +11,18 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
-find_package(ZLIB REQUIRED)
-include_directories(${ZLIB_INCLUDE_DIRS})
-link_libraries(${ZLIB_LIBRARIES})
+#find_package(ZLIB REQUIRED)
+#include_directories(${ZLIB_INCLUDE_DIRS})
+#link_libraries(${ZLIB_LIBRARIES})
+
+find_package(PCL 1.7 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
+
+include_directories(include)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
