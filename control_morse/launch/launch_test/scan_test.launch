@@ -17,4 +17,8 @@
 	<node pkg="control_morse" type="ptu_control" name="ptu_control" output="screen">
 	</node>
 
+	<!-- Backend registration service, called by grabber -->
+	<node pkg="table_registration" type="db_cloud_registration" name="db_cloud_registration" output="screen">
+	</node>
+
 </launch>

@@ -1,0 +1,24 @@
+
+
+<!- Only provide the service of primitive extractor (Debug only) -->
+<launch>
+
+    <!-- The topic to publish the detected tables on -->
+    <arg name="detection_topic" value="/table_detection/table_primitives"/>
+    <!-- The topic to publish the resulting found planes on -->
+    <arg name="primitive_topic" value="/primitive_extraction/primitives"/>
+    <!-- The topic to publish the tracked tables on -->
+    <arg name="table_topic" value="/table_detection/tables"/>
+
+    <!-- Launch the primitive extraction, only extract planes -->
+    <include file="$(find primitive_extraction)/launch/extraction.launch">
+        <!-- subscribe to a blank topic, just for providing service only -->
+        <arg name="cloud" value=""/>
+        <arg name="primitive_topic" value="$(arg primitive_topic)"/>
+        <arg name="extract_cylinders" value="false"/>
+        <arg name="extract_spheres" value="false"/>
+        <arg name="min_height" value="0.5"/>
+        <arg name="max_height" value="2.0"/>
+    </include>
+
+</launch>

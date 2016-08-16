@@ -12,6 +12,7 @@
 #include <signal.h>
 
 //#include <table_detection/ROIcloud.h>
+#include <control_morse/WholeScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <control_morse/Pause.h>
 #include <nav_msgs/Odometry.h>
@@ -19,12 +20,17 @@
 #define PRINTOUTS true
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 ros::Publisher vis_pub;
-//ros::ServiceClient grab_srv;
+ros::ServiceClient scan_srv;
 ros::ServiceClient client;
-//table_detection::ROIcloud grab_cloud;
+control_morse::WholeScan scan_type;
 bool state_pause=false;
 int search_range;
 MoveBaseClient *ac;
+
+void merge_freecell(std::vector<cv::Point2i> &free_space)
+{
+    //free_space
+}
 
 void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<cv::Point2i> &free_space, int search_range)
 {
@@ -75,9 +81,9 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<
     if(PRINTOUTS)
     {
         std::cout<<"Free space num: "<<free_space.size()<<std::endl;
-        std::copy(indices.begin(),indices.end(),std::ostream_iterator<int>(std::cout, " "));
-        std::cout<<std::endl;
-        std::copy(dists.begin(),dists.end(),std::ostream_iterator<float>(std::cout, " "));
+        //std::copy(indices.begin(),indices.end(),std::ostream_iterator<int>(std::cout, " "));
+        //std::cout<<std::endl;
+        //std::copy(dists.begin(),dists.end(),std::ostream_iterator<float>(std::cout, " "));
     }
 
 }
@@ -151,7 +157,9 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         {
             ROS_INFO("goal succeeded, scanning...");
             //grab_srv.call(grab_cloud);
-            //TODO: run other node check database and do the registration work
+            scan_type.request.scan_type="whole";
+            scan_srv.call(scan_type);
+            scan_srv.waitForExistence();
         }
         else
         {
@@ -161,7 +169,6 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
     }
 
 }
-
 
 //convert mat to 2D points(in meter)
 void cvmat2points(cv::Mat &mm, std::vector<cv::Point2f> &pd_arr)
@@ -314,15 +321,18 @@ int main(int argc, char **argv)
 
     ros::MultiThreadedSpinner spinner(3);
     //get params
-    pn.param<int>("/search_range", search_range, 20);
+    pn.param<int>("search_range", search_range, 20);
+    //pn.getParam("/getmap/search_range", search_range);
 
     vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
     ros::ServiceServer server = n.advertiseService("pause_morse", pause_action);
-    //grab_srv = n.serviceClient<table_detection::ROIcloud>("ROIcloud");
+    scan_srv = n.serviceClient<control_morse::WholeScan>("do_scan");
     client  = n.serviceClient<nav_msgs::GetMap>("static_map");
 
     ros::Subscriber sub = n.subscribe("/head_xtion/depth/points",1,pause_thread);
     ros::Subscriber sub2 = n.subscribe("/head_xtion/depth/points",1,main_thread);
+
+    std::cout<<"using search range:"<<search_range<<std::endl;
 
     spinner.spin();
 }

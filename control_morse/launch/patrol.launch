@@ -4,7 +4,7 @@
 	<include file="$(find mongodb_store)/launch/mongodb_store.launch">
 	</include>
 
-    <!-- provide service for getmap, and publish ROI cloud -->
+    <!-- provide service for getmap, and publish ROI cloud which will stored by soma_io to ws_observation-->
     <node pkg="table_detection" type="grabber" name="grabber" output="screen">
     </node>
 
@@ -13,13 +13,31 @@
     <node pkg="soma_io" type="datasets_importer" name="datasets_importer" output="screen" args="-m online -t /pointcloud/tomongo">
 	</node>
 
-    <!-- Provide PTU control service to do a 'whole' or 'single' scan-->
-	<node pkg="control_morse" type="ptu_control" name="ptu_control", output="screen">
+    <!-- Provide PTU control service to do a 'whole' or 'single' scan, called by getmap-->
+	<node pkg="control_morse" type="ptu_control" name="ptu_control" output="screen">
 	</node>
 
+    <!-- The topic to publish the detected tables on -->
+    <arg name="detection_topic" value="/table_detection/table_primitives"/>
+    <!-- The topic to publish the resulting found planes on -->
+    <arg name="primitive_topic" value="/primitive_extraction/primitives"/>
+    <!-- The topic to publish the tracked tables on -->
+    <arg name="table_topic" value="/table_detection/tables"/>
+
+    <!-- Launch the primitive extraction, only extract planes -->
+    <include file="$(find primitive_extraction)/launch/extraction.launch">
+        <!-- subscribe to a topic that publish by grabber -->
+        <arg name="cloud" value="/pointcloud/tomongo"/>
+        <arg name="primitive_topic" value="$(arg primitive_topic)"/>
+        <arg name="extract_cylinders" value="false"/>
+        <arg name="extract_spheres" value="false"/>
+        <arg name="min_height" value="0.5"/>
+        <arg name="max_height" value="2.0"/>
+    </include>
 
     <!-- launch map processing node, get the patrol goal and mark on the map-->
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">
+		<param name="search_range" value="20"/>
     </node>
     
 </launch>
