@@ -95,12 +95,11 @@ void extract(primitive_extraction::PrimitiveArray& msg_array, std::vector<base_p
              const sensor_msgs::PointCloud2& msg)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr valid_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    std::vector<int> ind;
     pcl::fromROSMsg(msg, *msg_cloud);
 
     //TODO: morse poincloud converted is dense (1), but actually it's not,just reset dense to 0.
+    //nan point may already included when morse publish point cloud, but it sets dense to true;
     msg_cloud->is_dense = 0;
 
     ROS_INFO("Got a point cloud of size %lu", msg_cloud->size());
@@ -114,8 +113,14 @@ void extract(primitive_extraction::PrimitiveArray& msg_array, std::vector<base_p
     }
     sor.filter(*cloud);
     ROS_INFO("Downsampled to %lu", cloud->size());
-    pcl::io::savePCDFileASCII("/home/parallels/voxel_filtered.pcd", *cloud);
-    ROS_INFO("Saved to home folder... %lu", cloud->size());
+
+    if(cloud->size()!=0) {
+        pcl::io::savePCDFileASCII("/home/parallels/voxel_filtered.pcd", *cloud);
+        ROS_INFO("Saved to home folder... %lu", cloud->size());
+    }
+    else{
+        return;
+    }
 
     ros::Time begin = ros::Time::now();
     primitive_extractor<pcl::PointXYZ> extractor(cloud, primitives, params, NULL);

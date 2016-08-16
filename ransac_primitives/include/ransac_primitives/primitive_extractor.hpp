@@ -6,7 +6,7 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/filter.h>
 
-#define PRINTOUTS true
+#define PRINTOUTS false
 
 using namespace Eigen;
 
@@ -47,9 +47,9 @@ primitive_extractor<Point>::primitive_extractor(cloud_ptr new_cloud,
         std::cout << "Normals extracted..." << std::endl;
     }
 
+    //copy whole point cloud to matrices
     mpoints.resize(3, cloud->size());
     mnormals.resize(3, cloud->size());
-
     Vector3f point;
     for (size_t i = 0; i < cloud->size(); ++i) {
         point = cloud->points[i].getVector3fMap();
@@ -506,6 +506,7 @@ void primitive_extractor<pcl::PointXYZRGB>::color_primitive(base_primitive* p)
 }
 
 // sample an octree level from the learnt distribution
+//TODO: iteration is no use in this funciton
 template <typename Point>
 int primitive_extractor<Point>::sample_level(int iteration)
 {

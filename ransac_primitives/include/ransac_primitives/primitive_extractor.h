@@ -55,7 +55,7 @@ private:
     void overlapping_estimates(std::vector<base_primitive*>& primitives, base_primitive* best_candidate);
     double refine_inliers(std::vector<base_primitive *>& primitives);
 
-	std::clock_t start_t, end_t;
+    std::clock_t start_t, end_t;
 
 public:
     void primitive_inlier_points(Eigen::MatrixXd& points, base_primitive* p);

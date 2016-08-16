@@ -116,6 +116,7 @@ include_directories(
 ## Declare a cpp executable
 add_executable(detection src/detection.cpp)
 add_executable(grabber src/grabber.cpp)
+add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -126,6 +127,10 @@ target_link_libraries(detection
   ${catkin_LIBRARIES}
 )
 target_link_libraries(grabber
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(db_cloud_extraction
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )

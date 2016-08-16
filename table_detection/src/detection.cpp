@@ -103,7 +103,7 @@ void callback(const primitive_extraction::PrimitiveArray::ConstPtr& msg)
 bool service_callback(table_detection::DetectTables::Request& req,
 		table_detection::DetectTables::Response& res) // primitive_array input, table_ids return
 {
-	// get the primitives through service call
+	// get the primitivesethrough service call
 	primitive_extraction::ExtractPrimitives primitive_srv;
 	primitive_srv.request.pointcloud = req.pointcloud;
 	if (!primitive_client.call(primitive_srv)) {
