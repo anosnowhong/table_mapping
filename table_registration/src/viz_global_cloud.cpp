@@ -6,6 +6,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <mongodb_store/message_store.h>
 
+#define Debug true
 
 int main(int argc, char** argv)
 {
@@ -24,6 +25,16 @@ int main(int argc, char** argv)
     {
         pcl::fromROSMsg(*result_pc2[i], *cloud_store);
         *cloud_sum += *cloud_store;
+
+         if(Debug){
+            std::string name="/home/parallels/debug/.pcd";
+            std::stringstream ss;
+            ss<< i;
+            std::string str = ss.str();
+            name.insert(name.length()-4, str);
+            std::cout<<name<<std::endl;
+            pcl::io::savePCDFileASCII(name, *cloud_store);
+        }
     }
     sensor_msgs::PointCloud2 pub_cloud;
     pcl::toROSMsg(*cloud_sum,pub_cloud);

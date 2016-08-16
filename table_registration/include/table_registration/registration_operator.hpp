@@ -33,7 +33,95 @@ void registration_operator<Point>::registration() {
     pcl::transformPointCloud(*cloud_source,tmp_cloud,ptu_transform);
     *cloud_whole = *cloud_target + tmp_cloud;
 
-    pcl::io::savePCDFileASCII("/home/parallels/debug/whole_cloud.pcd", *cloud_whole);
+    //pcl::io::savePCDFileASCII("/home/parallels/debug/whole_cloud.pcd", *cloud_whole);
+}
+
+/*
+ *Traditional ICP algorithm,based on PTU movement make a more accurate transformation.
+ */
+template <typename Point>
+void registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2){
+
+    cloud_ptr cloud1(new cloud_type());
+    cloud_ptr cloud2(new cloud_type());
+    cloud_ptr cloud_out(new cloud_type());
+
+    pcl::VoxelGrid<Point> vox;
+    vox.setLeafSize(0.01,0.01,0.01);
+    vox.setInputCloud(cloudin_1);//use the same cloud to cover itself
+    vox.filter(*cloud1);
+    vox.setInputCloud(cloudin_2);
+    vox.filter(*cloud2);
+
+    /*
+    pcl::PassThrough<PointT> pass;
+    pass.setFilterFieldName("z");
+    pass.setFilterLimits(1.0,2.5);
+    pass.setInputCloud(cloud1);
+    pass.filter(*cloud1);
+    pass.setInputCloud(cloud2);
+    pass.filter(*cloud2);
+     */
+
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+    CloudNormal::Ptr normal_cloud1(new CloudNormal);
+    CloudNormal::Ptr normal_cloud2(new CloudNormal);
+    pcl::NormalEstimation<Point,PointNormalT> norm_est;
+
+    norm_est.setSearchMethod(tree);
+    norm_est.setKSearch(20);
+    norm_est.setInputCloud(cloud1);
+    norm_est.compute(*normal_cloud1);
+    pcl::copyPointCloud(*cloud1,*normal_cloud1);
+    norm_est.setInputCloud(cloud2);
+    norm_est.compute(*normal_cloud2);
+    pcl::copyPointCloud(*cloud2,*normal_cloud2);
+
+    normal_PointRepresentation point_representation;
+    float alpha[4]  = {1.0,1.0,1.0,1.0};
+    point_representation.setRescaleValues(alpha);//nothing have changed?
+
+    //icp nonlinear
+    ROS_INFO("ICP Start Setting...");
+    pcl::IterativeClosestPointNonLinear<PointNormalT,PointNormalT> reg;
+    reg.setTransformationEpsilon(1e-6);
+    reg.setMaxCorrespondenceDistance(0.1);
+
+    reg.setPointRepresentation(boost::make_shared<const normal_PointRepresentation>(point_representation));
+
+    reg.setInputSource(normal_cloud1);
+    reg.setInputTarget(normal_cloud2);
+
+    Eigen::Matrix4f Ti = Eigen::Matrix4f::Identity(), prev, targetToSource;
+
+    ROS_INFO("ICP Start...");
+    CloudNormal::Ptr reg_result = normal_cloud1;
+    //start iteration times
+    reg.setMaximumIterations(2);
+    for(int i=0;i<30;++i)
+    {
+        normal_cloud1=reg_result;
+        reg.setInputSource(normal_cloud1);
+        reg.align(*reg_result);
+        Ti = reg.getFinalTransformation()*Ti;
+
+        //if the latest incremental variable minus previous is smaller than epsilon
+        if(fabs((reg.getLastIncrementalTransformation()-prev).sum())<reg.getTransformationEpsilon())
+            reg.setMaxCorrespondenceDistance(reg.getMaxCorrespondenceDistance()-0.001);
+        prev = reg.getLastIncrementalTransformation();
+
+    }
+    targetToSource = Ti.inverse();//inverse Matrix
+
+    //use targetToSource transform cloud2 and give the result to Final_cloud
+    pcl::transformPointCloud(*cloud2,*cloud_out,targetToSource);
+
+    *cloud_out+=*cloud1;//add two point cloud
+
+    ROS_INFO("ICP Compeleted...");
+
+    //std::cout<<"Matrix: "<<TransformMatrix<<std::endl;
+
 }
 
 template <typename Point>

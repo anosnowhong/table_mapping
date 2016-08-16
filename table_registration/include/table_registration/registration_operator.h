@@ -20,6 +20,31 @@
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Quaternion.h>
 
+typedef pcl::PointNormal PointNormalT;
+typedef pcl::PointCloud<PointNormalT> CloudNormal;
+
+class normal_PointRepresentation : public pcl::PointRepresentation <PointNormalT>
+{
+    using pcl::PointRepresentation<PointNormalT>::nr_dimensions_;
+public:
+    normal_PointRepresentation ()
+    {
+        // Define the number of dimensions
+        nr_dimensions_ = 4;
+    }
+
+    // Override the copyToFloatArray method to define our feature vector
+    virtual void copyToFloatArray (const PointNormalT &p, float * out) const
+    {
+        // < x, y, z, curvature >
+        out[0] = p.x;
+        out[1] = p.y;
+        out[2] = p.z;
+        out[3] = p.curvature;
+    }
+};
+
+
 template <typename Point>
 class registration_operator {
 public:
@@ -41,7 +66,11 @@ public:
 
 
     void registration();
+
     void to_global(cloud_type& output);
+
+    //run icp algorithm base on the ptu transformation result
+    void accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2);
 private:
     Eigen::MatrixXf trans_to_matrix(geometry_msgs::Vector3 vec);
     Eigen::MatrixXf rot_to_matrix(geometry_msgs::Quaternion qua);
@@ -50,6 +79,5 @@ private:
     Eigen::MatrixXf ptu_transform;
 
 };
-
 
 #endif
