@@ -54,6 +54,8 @@ public:
     typedef typename cloud_type::ConstPtr cloud_const_ptr;
 
 public:
+
+    registration_operator();
     //
     registration_operator(cloud_ptr cloud1, cloud_ptr cloud2,
                           geometry_msgs::Vector3& vec,
@@ -70,7 +72,7 @@ public:
     void to_global(cloud_type& output);
 
     //run icp algorithm base on the ptu transformation result
-    void accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2);
+    Eigen::Matrix4f accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2, cloud_ptr tfed_cloud);
 private:
     Eigen::MatrixXf trans_to_matrix(geometry_msgs::Vector3 vec);
     Eigen::MatrixXf rot_to_matrix(geometry_msgs::Quaternion qua);

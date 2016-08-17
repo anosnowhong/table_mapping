@@ -1,6 +1,12 @@
 #include "registration_operator.h"
 
 template <typename Point>
+registration_operator<Point>::registration_operator():
+        cloud_source(new cloud_type()), cloud_target(new cloud_type()), cloud_whole(new cloud_type())
+{
+
+}
+template <typename Point>
 registration_operator<Point>::registration_operator(cloud_ptr cloud1, cloud_ptr cloud2, geometry_msgs::Vector3 &vec,
                                                     geometry_msgs::Quaternion &qua):
         cloud_source(new cloud_type()), cloud_target(new cloud_type()), cloud_whole(new cloud_type())
@@ -40,14 +46,14 @@ void registration_operator<Point>::registration() {
  *Traditional ICP algorithm,based on PTU movement make a more accurate transformation.
  */
 template <typename Point>
-void registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2){
+Eigen::Matrix4f registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2, cloud_ptr tfed_cloud){
 
     cloud_ptr cloud1(new cloud_type());
     cloud_ptr cloud2(new cloud_type());
     cloud_ptr cloud_out(new cloud_type());
 
     pcl::VoxelGrid<Point> vox;
-    vox.setLeafSize(0.01,0.01,0.01);
+    vox.setLeafSize(0.05,0.05,0.05);
     vox.setInputCloud(cloudin_1);//use the same cloud to cover itself
     vox.filter(*cloud1);
     vox.setInputCloud(cloudin_2);
@@ -118,7 +124,11 @@ void registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, cloud_ptr c
 
     *cloud_out+=*cloud1;//add two point cloud
 
+    //output cloud2 that registed to cloud1's coordinate
+    *tfed_cloud = *cloud_out;
     ROS_INFO("ICP Compeleted...");
+
+    return targetToSource;
 
     //std::cout<<"Matrix: "<<TransformMatrix<<std::endl;
 

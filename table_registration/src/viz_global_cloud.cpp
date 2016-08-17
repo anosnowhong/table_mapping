@@ -6,16 +6,21 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <mongodb_store/message_store.h>
 
-#define Debug true
+#define Debug false
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "viz_global");
     ros::NodeHandle n;
+    ros::NodeHandle pn("~");
     ros::Rate loop_rate(1);
+
+    std::string collection;
+    pn.param<std::string>("collection", collection, "global_clouds");
+
     ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("/global_cloud",10);
     //ros::Subscriber sub = n.subscribe("/global_cloud");
-    mongodb_store::MessageStoreProxy messageStore(n,"global_clouds");
+    mongodb_store::MessageStoreProxy messageStore(n,collection);
     std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
     messageStore.query<sensor_msgs::PointCloud2>(result_pc2);
 
@@ -43,8 +48,10 @@ int main(int argc, char** argv)
     pub_cloud.header = result_pc2[0]->header;
     pub_cloud.header.stamp = ros::Time();
 
-    mongodb_store::MessageStoreProxy tt(n,"test");
-    tt.insert(pub_cloud);
+    if(Debug){
+        mongodb_store::MessageStoreProxy tt(n,"test");
+        tt.insert(pub_cloud);
+    }
 
     while(ros::ok())
     {

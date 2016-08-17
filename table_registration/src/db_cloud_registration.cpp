@@ -4,9 +4,10 @@
 #include "table_registration/registration_operator.hpp"
 #include <table_registration/ToGlobal.h>
 #include <sensor_msgs/PointCloud2.h>
-
+#include <table_detection/db_extract.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/io/pcd_io.h>
+#include <table_detection/db_extract_whole_table.h>
 
 
 /* #A backend node that does the registration work with MongoDB.
@@ -21,6 +22,8 @@ typedef boost::shared_ptr<sensor_msgs::PointCloud2> PointCloud2Ptr;
 
 ros::NodeHandlePtr nh;
 bool regist = false;
+ros::ServiceClient extract_client;
+ros::ServiceClient extract_client2;
 
 //service call to convert cloud in ws_observation to global_cloud collection
 bool to_global(table_registration::ToGlobal::Request &req, table_registration::ToGlobal::Response &res)
@@ -46,7 +49,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     int stored_num = result_pc2.size();
     if (queue == 0){
         ROS_INFO("Already transformed!");
-        return false;
     }
 
     std::cout<<queue<<std::endl;
@@ -89,9 +91,74 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         db_store_msg.header=result_pc2[i+stored_num-queue]->header;
         db_store_msg.header.frame_id = "/map";
         cloud_store.insert(db_store_msg);
-
     }
     ROS_INFO("Done. Point Clouds has been transformed to global coordinate '/map'");
+
+    //extract table plane from global clouds
+    table_detection::db_extract to_extract;
+    extract_client.call(to_extract);
+    int plane_num = to_extract.response.cloud_has_plane.size();
+    std::vector<int> plane_index;
+    for(int i=0;i< plane_num;i++)
+        plane_index.push_back(to_extract.response.cloud_has_plane[i]);
+
+    //recorde the index of point cloud that can extract a plane
+    //use the index to do accurate icp by using the nearby clouds
+    mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
+    registration_operator<pcl::PointXYZ> reg_icp;
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud2(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
+    Eigen::Matrix4f global_matrix;
+
+    for(int i=0;i<plane_num;i++)
+    {
+        cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>);
+
+        //the cloud before this
+        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
+            pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud1);
+        else
+            pcl::fromROSMsg(*result_global_pc2[plane_index[i]-1],*cloud1);
+
+        pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
+        //get the transform between 2 clouds
+        Eigen::Matrix4f mat1 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud2);
+        *cloud_sum += *cloud1;
+        *cloud_sum += *tfed_cloud2;
+
+        //the cloud after this
+        cloud1 = cloud2;
+        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
+            pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
+        else
+            pcl::fromROSMsg(*result_global_pc2[plane_index[i]+1],*cloud2);
+        Eigen::Matrix4f mat2 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud2);
+        *cloud_sum += *tfed_cloud2;
+
+        //call extraction service and pass the combined three clouds
+        table_detection::db_extract_whole_table table_req;
+        sensor_msgs::PointCloud2 whole_table;
+        pcl::toROSMsg(*cloud_sum, whole_table);
+        whole_table.header.frame_id="/map";
+
+        icp_cloud.insert(whole_table);
+
+        table_req.request.cloud=whole_table;
+        extract_client2.call(table_req);
+
+    }
+
+    ROS_INFO("Done. Whole Table has been extracted. ");
+
+
+    //result_global_pc2[]
+
 
     return true;
 }
@@ -102,6 +169,8 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "db_cloud_registration");
     nh.reset(new ros::NodeHandle);
     ros::ServiceServer service = nh->advertiseService("to_global",to_global);
+    extract_client = nh->serviceClient<table_detection::db_extract>("db_extract");
+    extract_client2 = nh->serviceClient<table_detection::db_extract_whole_table>("db_extract_whole_table");
 
     ros::spin();
 }
