@@ -19,5 +19,8 @@
         <arg name="min_height" value="0.5"/>
         <arg name="max_height" value="2.0"/>
     </include>
+	
+	<!--<node pkg="table_detection" type="db_cloud_extraction" name="db_cloud_extraction" output="screen">-->
+	<!--</node>-->
     
 </launch>

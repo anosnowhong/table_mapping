@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   primitives_to_tables
   sensor_msgs
   strands_perception_msgs
+        mongodb_store
 )
 
 ## System dependencies are found with CMake's conventions
@@ -63,6 +64,8 @@ add_service_files(
   FILES
   DetectTables.srv
   ROIcloud.srv
+        db_extract.srv
+        db_extract_whole_table.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -117,6 +120,7 @@ include_directories(
 add_executable(detection src/detection.cpp)
 add_executable(grabber src/grabber.cpp)
 add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
+add_executable(table_status src/table_status.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -135,6 +139,10 @@ target_link_libraries(db_cloud_extraction
         ${PCL_LIBRARIES}
         )
 
+target_link_libraries(table_status
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
 #############
 ## Install ##
 #############
