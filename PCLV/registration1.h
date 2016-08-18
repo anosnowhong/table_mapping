@@ -42,8 +42,8 @@ public:
     void loadCloud();
     void run();
 
-    CloudXYZRGBA::ConstPtr cloudin_1;
-    CloudXYZRGBA::ConstPtr cloudin_2;
+    CloudXYZRGBA::Ptr cloudin_1;
+    CloudXYZRGBA::Ptr cloudin_2;
     CloudXYZRGBA::Ptr Final_Cloud;
     Eigen::Matrix4f GlobalTransform, pairtransform;
     int record_cloud;//count for registration

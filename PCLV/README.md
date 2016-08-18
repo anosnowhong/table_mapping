@@ -2,6 +2,8 @@ Debug tools for point cloud processing
 feature:
 *octoree
 *surface
-*load pcd
 *registration
 *visualization
+
+//todo: use template support for different cloud types
+*load pcd

@@ -32,6 +32,7 @@ void registration1::run()
     vox.setInputCloud(cloudin_2);
     vox.filter(*cloud2);
 
+    /*
     std::cerr<<"PassThrough"<<std::endl;
     pcl::PassThrough<PointT> pass;
     pass.setFilterFieldName("z");
@@ -40,6 +41,7 @@ void registration1::run()
     pass.filter(*cloud1);
     pass.setInputCloud(cloud2);
     pass.filter(*cloud2);
+     */
     pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>);
 
     std::cerr<<"ComputeNormal..."<<std::endl;
@@ -121,7 +123,6 @@ void registration1::run()
     std::cerr<<"ICP Compeleted..."<<std::endl;
 
 
-    //输出两两变换的矩阵
     //TransformMatrix+=tt;
     TransformMatrix+="\n";
     TransformMatrix+="===================";

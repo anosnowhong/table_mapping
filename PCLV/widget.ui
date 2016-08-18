@@ -143,6 +143,9 @@
              </layout>
             </item>
             <item>
+             <widget class="QLineEdit" name="lineEdit"/>
+            </item>
+            <item>
              <widget class="QProgressBar" name="progressBar">
               <property name="maximum">
                <number>30</number>

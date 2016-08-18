@@ -6,8 +6,8 @@
 openni_grabber1 *v=new openni_grabber1();
 registration1 Ris;
 Widget::Widget(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::Widget)
+        QWidget(parent),
+        ui(new Ui::Widget)
 {
     viz=new pcl::visualization::PCLVisualizer("",false);
     viz2=new pcl::visualization::PCLVisualizer("",false);
@@ -121,6 +121,16 @@ void Widget::on_getcloud_btn_clicked()
 {
     if(getcloud_btn_isfirst)
     {
+        std::string name = ui->lineEdit->text().toStdString();
+        pcl::io::loadPCDFile(name, *Ris.cloudin_1);
+        //view in vtk
+        PointCloudColorHandlerCustom<PointT> src(Ris.cloudin_1,255,0,0);
+        viz2->addPointCloud(Ris.cloudin_1,src,"src");//src view in v2
+        ui->qvtkWidget_2->update();
+        getcloud_btn_isfirst=false;
+        v->cloud_mutex_.unlock();
+
+        /*
         if(v->cloud_mutex_.try_lock())
         {
             Ris.cloudin_1=v->cloud_;
@@ -132,9 +142,30 @@ void Widget::on_getcloud_btn_clicked()
             getcloud_btn_isfirst=false;
             v->cloud_mutex_.unlock();
         }
+        */
     }
     else
     {
+
+        std::cerr<<"Update src"<<std::endl;
+        //view in vtk2
+        PointCloudColorHandlerCustom<PointT> src(Ris.cloudin_1,255,0,0);
+        viz2->updatePointCloud(Ris.cloudin_1,src,"src");//src view in v2
+        ui->qvtkWidget_2->update();
+
+        std::string name = ui->lineEdit->text().toStdString();
+        pcl::io::loadPCDFile(name, *Ris.cloudin_2);
+        //view in vtk2
+        std::cerr<<"Update tgt"<<std::endl;
+        PointCloudColorHandlerCustom<PointT> tgt(Ris.cloudin_2,0,255,0);
+        if(!viz2->updatePointCloud(Ris.cloudin_2,tgt,"tgt"))
+            viz2->addPointCloud(Ris.cloudin_2,tgt,"tgt");//tgt view in v2
+
+        ui->progressBar->setValue(0);
+        Ris.start();//Thread...start!
+        v->cloud_mutex_.unlock();
+
+        /*
         std::cerr<<"Update src"<<std::endl;
         //view in vtk2
         PointCloudColorHandlerCustom<PointT> src(Ris.cloudin_1,255,0,0);
@@ -154,6 +185,7 @@ void Widget::on_getcloud_btn_clicked()
             Ris.start();//Thread...start!
             v->cloud_mutex_.unlock();
         }
+        */
     }
 }
 
