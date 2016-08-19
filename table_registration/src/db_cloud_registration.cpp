@@ -51,9 +51,8 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         ROS_INFO("Already transformed!");
     }
 
-    std::cout<<queue<<std::endl;
-    std::cout<<"pc2: "<<result_pc2.size();
-    std::cout<<" tf: "<<result_tf.size()<<std::endl;
+    ROS_INFO("pc2 amount: %lu tf amount: %lu",result_pc2.size(), result_tf.size());
+    ROS_INFO("Remaining To Transform: %d",queue);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr db_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr db_store(new pcl::PointCloud<pcl::PointXYZ>());
@@ -94,10 +93,12 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     }
     ROS_INFO("Done. Point Clouds has been transformed to global coordinate '/map'");
 
-    //extract table plane from global clouds
+    //extract table plane from global clouds, record index as well
+    extract_client.waitForExistence();
     table_detection::db_extract to_extract;
     extract_client.call(to_extract);
     int plane_num = to_extract.response.cloud_has_plane.size();
+    ROS_INFO("Detect %d possible table planes", plane_num);
     std::vector<int> plane_index;
     for(int i=0;i< plane_num;i++)
         plane_index.push_back(to_extract.response.cloud_has_plane[i]);
@@ -111,7 +112,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud2(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
-    Eigen::Matrix4f global_matrix;
 
     for(int i=0;i<plane_num;i++)
     {
@@ -120,7 +120,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>);
         cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>);
 
-        //the cloud before this
+        //the cloud before the cloud that contains plane
         if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud1);
         else
@@ -132,7 +132,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         *cloud_sum += *cloud1;
         *cloud_sum += *tfed_cloud2;
 
-        //the cloud after this
+        //the cloud after the cloud that contains plane
         cloud1 = cloud2;
         if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
@@ -148,16 +148,16 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         whole_table.header.frame_id="/map";
 
         icp_cloud.insert(whole_table);
+        ROS_INFO("Done. ICP registered cloud has been stored to icp_cloud collection. ");
 
+        while(!extract_client2.waitForExistence())
+            ROS_INFO("Waiting for service db_extract_whole_table to be available");
         table_req.request.cloud=whole_table;
         extract_client2.call(table_req);
 
     }
 
     ROS_INFO("Done. Whole Table has been extracted. ");
-
-
-    //result_global_pc2[]
 
 
     return true;

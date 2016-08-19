@@ -115,8 +115,8 @@ void extract(primitive_extraction::PrimitiveArray& msg_array, std::vector<base_p
     ROS_INFO("Downsampled to %lu", cloud->size());
 
     if(cloud->size()!=0) {
-        pcl::io::savePCDFileASCII("/home/parallels/voxel_filtered.pcd", *cloud);
-        ROS_INFO("Saved to home folder... %lu", cloud->size());
+        //pcl::io::savePCDFileASCII("/home/parallels/voxel_filtered.pcd", *cloud);
+        //ROS_INFO("Saved to home folder... %lu", cloud->size());
     }
     else{
         return;

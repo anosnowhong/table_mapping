@@ -6,6 +6,7 @@ registration_operator<Point>::registration_operator():
 {
 
 }
+
 template <typename Point>
 registration_operator<Point>::registration_operator(cloud_ptr cloud1, cloud_ptr cloud2, geometry_msgs::Vector3 &vec,
                                                     geometry_msgs::Quaternion &qua):

@@ -24,16 +24,24 @@
     <!-- The topic to publish the tracked tables on -->
     <arg name="table_topic" value="/table_detection/tables"/>
 
-    <!-- Launch the primitive extraction, only extract planes -->
+    <!-- Launch the primitive extraction, only need the service -->
     <include file="$(find primitive_extraction)/launch/extraction.launch">
         <!-- subscribe to a topic that publish by grabber -->
-        <arg name="cloud" value="/pointcloud/tomongo"/>
+        <arg name="cloud" value="/none"/>
         <arg name="primitive_topic" value="$(arg primitive_topic)"/>
         <arg name="extract_cylinders" value="false"/>
         <arg name="extract_spheres" value="false"/>
         <arg name="min_height" value="0.5"/>
         <arg name="max_height" value="2.0"/>
     </include>
+
+	<!-- Backend registration service, called by grabber -->
+	<node pkg="table_registration" type="db_cloud_registration" name="db_cloud_registration" output="screen">
+	</node>
+
+    <!--table extraction service-->
+	<node pkg="table_detection" type="db_cloud_extraction" name="db_cloud_extraction" output="screen">
+	</node> 
 
     <!-- launch map processing node, get the patrol goal and mark on the map-->
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">

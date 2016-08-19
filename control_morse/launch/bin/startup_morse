@@ -1,2 +1,0 @@
-#!/bin/zsh
-roslaunch strands_morse tum_kitchen_morse.launch

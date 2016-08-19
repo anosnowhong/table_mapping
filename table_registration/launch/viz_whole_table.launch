@@ -1,0 +1,6 @@
+<launch>
+	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
+		<param name="collection" value="whole_table_clouds"/>
+	</node>
+
+</launch>

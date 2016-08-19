@@ -159,7 +159,6 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
             //grab_srv.call(grab_cloud);
             scan_type.request.scan_type="whole";
             scan_srv.call(scan_type);
-            scan_srv.waitForExistence();
         }
         else
         {

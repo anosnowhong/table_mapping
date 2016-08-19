@@ -33,6 +33,12 @@ build/*
 PCLV/build/*
 PCLV/.idea/*
 PCLV/pclv.pro.user
-*.cxx
 
+*.pcd
+*.bt
 
+control_morse/build/*
+table_detection/build/*
+pcl_tools/build/*
+table_registration/build/*
+*swp
