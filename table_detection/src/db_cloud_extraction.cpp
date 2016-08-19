@@ -4,12 +4,11 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <primitive_extraction/ExtractPrimitives.h>
 #include <pcl_ros/point_cloud.h>
-#include <pcl/io/pcd_io.h>
 #include <table_detection/db_extract.h>
 #include <table_detection/db_extract_whole_table.h>
 #include <primitives_to_tables/PrimitivesToTables.h>
 #include <strands_perception_msgs/Table.h>
-
+#include <std_msgs/Int32.h>
 
 /* #A backend node that does the extraction work with MongoDB.
  * Load point cloud data from global_cloud collection.
@@ -113,19 +112,25 @@ bool extract(table_detection::db_extract::Request &req, table_detection::db_extr
     //search all point clouds
     global_clouds.query<sensor_msgs::PointCloud2>(result_pc2);
 
-    std::cout<<"pc2: "<<result_pc2.size()<<std::endl;
+    //load check_num form mongodb, this value record how many global clouds has been checked.
+    std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
+    table_store.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
+    if(checked_amount.size() == 0){
+        std_msgs::Int32 tmp;
+        tmp.data = checked_num;
+        table_store.insertNamed("checked_num",tmp);
+    }
+    else{
+        //load record form mongodb
+        checked_num = checked_amount[0]->data;
+    }
 
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr db_global_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    ROS_INFO("Cloud found: %lu, already checked: %d", result_pc2.size(), checked_num);
 
     for(;checked_num<result_pc2.size();checked_num++)
     {
-        //reset
-        //db_global_cloud.reset(new pcl::PointCloud<pcl::PointXYZ>);
-
-        //load point cloud data to pcl::PointCloud2
-        //pcl::fromROSMsg(*result_pc2[i],*db_global_cloud);
-
         //call the extraction service,get primitives planes
+        primitive_client.waitForExistence();
         primitive_extraction::ExtractPrimitives req;
         req.request.pointcloud=*result_pc2[checked_num];
         primitive_client.call(req);
@@ -158,6 +163,10 @@ bool extract(table_detection::db_extract::Request &req, table_detection::db_extr
         if(to_table.primitives.size()>0)
             res.cloud_has_plane.push_back(checked_num);
     }
+    //update check_num in mongodb
+    std_msgs::Int32 tmp;
+    tmp.data = checked_num;
+    table_store.updateNamed("checked_num",tmp);
 
     if(Debug)
     {

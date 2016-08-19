@@ -66,6 +66,7 @@ add_service_files(
   ROIcloud.srv
         db_extract.srv
         db_extract_whole_table.srv
+        db_table_clouds.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -121,6 +122,7 @@ add_executable(detection src/detection.cpp)
 add_executable(grabber src/grabber.cpp)
 add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 add_executable(table_status src/table_status.cpp)
+add_executable(db_table_extraction src/db_table_extraction.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -140,6 +142,10 @@ target_link_libraries(db_cloud_extraction
         )
 
 target_link_libraries(table_status
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(db_table_extraction
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
