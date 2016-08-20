@@ -12,7 +12,7 @@
 
     <!-- Launch the primitive extraction, only extract planes -->
     <include file="$(find primitive_extraction)/launch/extraction.launch">
-        <arg name="cloud" value="$(arg cloud)"/>
+        <arg name="cloud" value="/none"/>
         <arg name="primitive_topic" value="$(arg primitive_topic)"/>
         <arg name="extract_cylinders" value="false"/>
         <arg name="extract_spheres" value="false"/>

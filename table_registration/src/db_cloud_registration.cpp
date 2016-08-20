@@ -43,6 +43,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     messageStore.query<geometry_msgs::TransformStamped>(result_tf);
     //get all transformed point clouds
     cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
+    std::cout<<result_global_pc2.size()<<std::endl;
 
     //how many clouds need to be transformed
     int queue = result_pc2.size()-result_global_pc2.size();
@@ -107,6 +108,9 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     //use the index to do accurate icp by using the nearby clouds
     mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
     registration_operator<pcl::PointXYZ> reg_icp;
+    //requery mongodb get latest result
+    cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
+    std::cout<<result_global_pc2.size()<<std::endl;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>());
@@ -115,16 +119,20 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
 
     for(int i=0;i<plane_num;i++)
     {
-        cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>);
-        tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>());
 
+        ROS_INFO("Looking for cloud index %d, and nearby clouds", plane_index[i]);
         //the cloud before the cloud that contains plane
-        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
+        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size()-1){
+
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud1);
-        else
+        }
+        else{
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]-1],*cloud1);
+        }
 
         pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
         //get the transform between 2 clouds
@@ -134,7 +142,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
 
         //the cloud after the cloud that contains plane
         cloud1 = cloud2;
-        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size())
+        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size()-1)
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
         else
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]+1],*cloud2);

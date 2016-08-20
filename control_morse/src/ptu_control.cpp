@@ -42,7 +42,9 @@ bool whole_scan(control_morse::WholeScan::Request &req,
             ptu->waitForResult();
             if(ptu->getState()==actionlib::SimpleClientGoalState::SUCCEEDED){
                 ROS_INFO("PTU goal succeeded.");
-                grab_srv.call(grab_cloud);//return the grabed cloud
+                bool rc = grab_srv.call(grab_cloud);//return the grabed cloud
+                if(!rc)
+                    ROS_INFO("Grabber service call returns FALSE!!!");
                 sleep(1);
             }
             else{
@@ -58,8 +60,11 @@ bool whole_scan(control_morse::WholeScan::Request &req,
     }
 
     //call the registration service to do the backend things
-    reg_srv.call(global_reg);
+    bool rc = reg_srv.call(global_reg);
 
+    if(!rc)
+        ROS_INFO("Registration service call returns FALSE!!!");
+    ROS_INFO("Registration Finished!");
     return true;
 }
 
