@@ -109,6 +109,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
     registration_operator<pcl::PointXYZ> reg_icp;
     //requery mongodb get latest result
+    result_global_pc2.clear();
     cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
     std::cout<<result_global_pc2.size()<<std::endl;
 

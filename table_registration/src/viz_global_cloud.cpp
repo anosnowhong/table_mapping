@@ -19,13 +19,13 @@ int main(int argc, char** argv)
     pn.param<std::string>("collection", collection, "global_clouds");
 
     ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("/global_cloud",10);
-    //ros::Subscriber sub = n.subscribe("/global_cloud");
     mongodb_store::MessageStoreProxy messageStore(n,collection);
     std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
     messageStore.query<sensor_msgs::PointCloud2>(result_pc2);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_store(new pcl::PointCloud<pcl::PointXYZ>());
+    ROS_INFO("Loading %lu Point Clouds!",result_pc2.size());
     for(int i=0;i<result_pc2.size();i++)
     {
         pcl::fromROSMsg(*result_pc2[i], *cloud_store);
