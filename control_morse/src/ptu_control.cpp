@@ -9,6 +9,7 @@ typedef actionlib::SimpleActionClient<scitos_ptu::PtuGotoAction> PTU_Client;
 PTU_Client *ptu;
 ros::ServiceClient grab_srv;
 ros::ServiceClient reg_srv;
+int pan_interval;
 
 bool whole_scan(control_morse::WholeScan::Request &req,
                 control_morse::WholeScan::Response &res)
@@ -24,7 +25,7 @@ bool whole_scan(control_morse::WholeScan::Request &req,
     //TODO:this is special control for PTU in morse only
     if(req.scan_type=="whole")
     {
-        float pan_interval = 45.0;
+        ROS_INFO("Pan interval is %d", pan_interval);
         for(int i=0;i<360.0/pan_interval  ;i++)
         {
             //define action msg
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "ptu_control");
     ros::NodeHandle n;
+    ros::NodeHandle pn("~");
     ros::ServiceServer server = n.advertiseService("do_scan",whole_scan);
 
     //service client
@@ -79,6 +81,8 @@ int main(int argc, char **argv)
     reg_srv = n.serviceClient<table_registration::ToGlobal>("to_global");
     //action client
     ptu = new PTU_Client("/SetPTUState", true);
+
+    pn.param<int>("pan_interval", pan_interval, 45);
 
     ros::spin();
 }

@@ -3,6 +3,7 @@
     <!-- launch map processing node, get the patrol goal and mark on the map-->
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">
         <param name="search_range" value="20"/>
+        <param name="goal_waiting_time" value="88"/>
     </node>
     
 </launch>

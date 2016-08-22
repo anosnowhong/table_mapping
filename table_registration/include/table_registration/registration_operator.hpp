@@ -49,12 +49,13 @@ void registration_operator<Point>::registration() {
 template <typename Point>
 Eigen::Matrix4f registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, cloud_ptr cloudin_2, cloud_ptr tfed_cloud){
 
+    //copy input cloud data
     cloud_ptr cloud1(new cloud_type());
     cloud_ptr cloud2(new cloud_type());
     cloud_ptr cloud_out(new cloud_type());
 
     pcl::VoxelGrid<Point> vox;
-    vox.setLeafSize(0.05,0.05,0.05);
+    vox.setLeafSize(0.02,0.02,0.02);
     vox.setInputCloud(cloudin_1);//use the same cloud to cover itself
     vox.filter(*cloud1);
     vox.setInputCloud(cloudin_2);
@@ -126,7 +127,7 @@ Eigen::Matrix4f registration_operator<Point>::accurate_icp(cloud_ptr cloudin_1, 
     *cloud_out+=*cloud1;//add two point cloud
 
     //output cloud2 that registed to cloud1's coordinate
-    *tfed_cloud = *cloud_out;
+    //*tfed_cloud = *cloud_out;
     ROS_INFO("ICP Compeleted...");
 
     return targetToSource;

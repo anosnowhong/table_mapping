@@ -4,6 +4,7 @@
 #include "table_registration/registration_operator.hpp"
 #include <table_registration/ToGlobal.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <table_registration/ICP_Cloud.h>
 #include <table_detection/db_extract.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/io/pcd_io.h>
@@ -21,7 +22,7 @@ typedef boost::shared_ptr<sensor_msgs::PointCloud2> PointCloud2Ptr;
 #define Debug false
 
 ros::NodeHandlePtr nh;
-bool regist = false;
+int pan_interval = 30;
 ros::ServiceClient extract_client;
 ros::ServiceClient extract_client2;
 
@@ -43,7 +44,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     messageStore.query<geometry_msgs::TransformStamped>(result_tf);
     //get all transformed point clouds
     cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
-    std::cout<<result_global_pc2.size()<<std::endl;
 
     //how many clouds need to be transformed
     int queue = result_pc2.size()-result_global_pc2.size();
@@ -111,43 +111,58 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     //requery mongodb get latest result
     result_global_pc2.clear();
     cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
-    std::cout<<result_global_pc2.size()<<std::endl;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud1(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud2(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
 
+    table_registration::ICP_Cloud whole_table_with_cloud_index;
+    int idd = 360/pan_interval;
     for(int i=0;i<plane_num;i++)
     {
         cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
         cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        tfed_cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
         tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
         cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>());
 
         ROS_INFO("Looking for cloud index %d, and nearby clouds", plane_index[i]);
         //the cloud before the cloud that contains plane
-        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size()-1){
-
+        if(plane_index[i]%idd == 0){
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud1);
+            whole_table_with_cloud_index.index.push_back(plane_index[i]);
         }
         else{
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]-1],*cloud1);
+            whole_table_with_cloud_index.index.push_back(plane_index[i]-1);
         }
-
         pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
-        //get the transform between 2 clouds
-        Eigen::Matrix4f mat1 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud2);
+        whole_table_with_cloud_index.index.push_back(plane_index[i]);
+
         *cloud_sum += *cloud1;
-        *cloud_sum += *tfed_cloud2;
+        //get the transform between 2 clouds
+        Eigen::Matrix4f mat1 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud1);
+        pcl::transformPointCloud(*cloud2, *tfed_cloud1, mat1);
+        *cloud_sum += *tfed_cloud1;
 
         //the cloud after the cloud that contains plane
+        tfed_cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
         cloud1 = cloud2;
-        if(plane_index[i]==0||plane_index[i]==result_global_pc2.size()-1)
+        if(plane_index[i]%idd == idd-1){
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]],*cloud2);
-        else
+            whole_table_with_cloud_index.index.push_back(plane_index[i]);
+        }
+        else{
             pcl::fromROSMsg(*result_global_pc2[plane_index[i]+1],*cloud2);
-        Eigen::Matrix4f mat2 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud2);
+            whole_table_with_cloud_index.index.push_back(plane_index[i]+1);
+        }
+        Eigen::Matrix4f mat2 = reg_icp.accurate_icp(cloud1, cloud2, tfed_cloud1);
+        //2 times transformation
+        pcl::transformPointCloud(*cloud2, *tfed_cloud1, mat2);
+        pcl::transformPointCloud(*tfed_cloud1, *tfed_cloud2, mat1);
+
         *cloud_sum += *tfed_cloud2;
 
         //call extraction service and pass the combined three clouds
@@ -155,14 +170,17 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         sensor_msgs::PointCloud2 whole_table;
         pcl::toROSMsg(*cloud_sum, whole_table);
         whole_table.header.frame_id="/map";
+        whole_table_with_cloud_index.icp_cloud=whole_table;
 
-        icp_cloud.insert(whole_table);
+        icp_cloud.insert(whole_table_with_cloud_index);
         ROS_INFO("Done. ICP registered cloud has been stored to icp_cloud collection. ");
 
         while(!extract_client2.waitForExistence())
             ROS_INFO("Waiting for service db_extract_whole_table to be available");
         table_req.request.cloud=whole_table;
-        extract_client2.call(table_req);
+        bool rc = extract_client2.call(table_req);
+        if(!rc)
+            ROS_INFO("Whole Table Extraction Service return FALSE!!!");
 
     }
 
@@ -177,6 +195,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "db_cloud_registration");
     nh.reset(new ros::NodeHandle);
+    ros::NodeHandle pn("~");
+    pn.param<int>("pan_interval", pan_interval, 30);
+
     ros::ServiceServer service = nh->advertiseService("to_global",to_global);
     extract_client = nh->serviceClient<table_detection::db_extract>("db_extract");
     extract_client2 = nh->serviceClient<table_detection::db_extract_whole_table>("db_extract_whole_table");

@@ -1,0 +1,28 @@
+#!/bin/zsh
+tmux has-session -t development
+if [ $? != 0 ]; then
+	tmux new-session -s development -n editor -d
+	#tmux send-keys -t development 'cd /home/parallels' C-m
+
+	tmux split-window -v -t development
+	tmux split-window -v -t development
+	tmux select-layout -t development main-horizontal
+
+
+	tmux new-window -n console -t development
+
+	#tmux send-keys -t development:2 'roscore' C-m
+	#sleep 3
+
+	tmux split-window -v -t development
+	tmux split-window -v -t development
+	tmux select-layout -t development main-horizontal
+	tmux send-keys -t development:2.1 'rviz' C-m
+
+	tmux select-window -t development:1
+	#roslaunch patrol.launch
+	tmux send-keys -t development:1.0 'roslaunch control_morse patrol.launch' C-m
+	tmux send-keys -t development:1.1 'roslaunch control_morse tum_kitchen_morse_camera.launch' C-m
+	tmux send-keys -t development:1.2 'roslaunch control_morse tum_kitchen_nav2d.launch' C-m
+fi
+tmux attach -t development

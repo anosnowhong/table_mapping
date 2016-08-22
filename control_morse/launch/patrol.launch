@@ -6,6 +6,8 @@
 
     <!-- provide service for getmap, and publish ROI cloud which will stored by soma_io to ws_observation-->
     <node pkg="table_detection" type="grabber" name="grabber" output="screen">
+        <param name="min_distance" value="0.0"/>
+        <param name="max_distance" value="2.5"/>
     </node>
 
     <!--soma_io node communicate with mongoDB to store the ROI cloud for later use -->
@@ -15,6 +17,7 @@
 
     <!-- Provide PTU control service to do a 'whole' or 'single' scan, called by getmap-->
 	<node pkg="control_morse" type="ptu_control" name="ptu_control" output="screen">
+	    <param name="pan_interval" value="30"/>
 	</node>
 
     <!-- The topic to publish the detected tables on -->
@@ -31,12 +34,13 @@
         <arg name="primitive_topic" value="$(arg primitive_topic)"/>
         <arg name="extract_cylinders" value="false"/>
         <arg name="extract_spheres" value="false"/>
-        <arg name="min_height" value="0.5"/>
-        <arg name="max_height" value="2.0"/>
+        <arg name="min_height" value="0.45"/>
+        <arg name="max_height" value="1.2"/>
     </include>
 
 	<!-- Backend registration service, called by grabber -->
 	<node pkg="table_registration" type="db_cloud_registration" name="db_cloud_registration" output="screen">
+	    <param name="pan_interval" value="30"/>
 	</node>
 
     <!--table extraction service-->
@@ -46,6 +50,7 @@
     <!-- launch map processing node, get the patrol goal and mark on the map-->
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">
 		<param name="search_range" value="20"/>
+		<param name="goal_waiting_time" value="75"/>
     </node>
     
 </launch>

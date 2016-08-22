@@ -103,6 +103,7 @@ void table_filter(primitive_extraction::PrimitiveArray &input,primitive_extracti
 
 bool extract(table_detection::db_extract::Request &req, table_detection::db_extract::Response &res)
 {
+    ROS_INFO("Starting extract table");
     //query point cloud and tf
     mongodb_store::MessageStoreProxy global_clouds(*nh,"global_clouds");
     //store point cloud that been transformed
@@ -178,6 +179,7 @@ bool extract(table_detection::db_extract::Request &req, table_detection::db_extr
 
 bool extract_whole_table(table_detection::db_extract_whole_table::Request &req, table_detection::db_extract_whole_table::Response &res)
 {
+    ROS_INFO("Starting extract whole table");
     mongodb_store::MessageStoreProxy whole_tables(*nh,"whole_tables");
 
     //call the extraction service,get primitives planes

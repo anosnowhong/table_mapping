@@ -25,6 +25,7 @@ ros::ServiceClient client;
 control_morse::WholeScan scan_type;
 bool state_pause=false;
 int search_range;
+int waiting_time;
 MoveBaseClient *ac;
 
 void merge_freecell(std::vector<cv::Point2i> &free_space)
@@ -151,7 +152,7 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         ROS_INFO("Goal has been send!( %G, %G)", goal_index.target_pose.pose.position.x,
                  goal_index.target_pose.pose.position.y);
         //set time to wait
-        ac->waitForResult(ros::Duration(60));
+        ac->waitForResult(ros::Duration(waiting_time));
 
         if(ac->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
@@ -159,6 +160,7 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
             //grab_srv.call(grab_cloud);
             scan_type.request.scan_type="whole";
             scan_srv.call(scan_type);
+            scan_srv.waitForExistence();
         }
         else
         {
@@ -321,6 +323,7 @@ int main(int argc, char **argv)
     ros::MultiThreadedSpinner spinner(3);
     //get params
     pn.param<int>("search_range", search_range, 20);
+    pn.param<int>("goal_waiting_time", waiting_time, 60);
     //pn.getParam("/getmap/search_range", search_range);
 
     vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);

@@ -11,11 +11,12 @@ int main(int argc, char** argv)
     ros::NodeHandle pn("~");
 
     std::string collection;
+    std::vector<int> indices;
     pn.param<std::string>("collection",collection, "whole_tables");
+    pn.getParam("specify_index",indices);
 
     ros::Publisher pub = n.advertise<visualization_msgs::MarkerArray>("table_planes", 1);
 
-    //ros::Publisher pub = n.advertise()
     mongodb_store::MessageStoreProxy table_store(n, collection);
     std::vector< boost::shared_ptr<strands_perception_msgs::Table> > result_tables;
     table_store.query<strands_perception_msgs::Table>(result_tables);
