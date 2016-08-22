@@ -10,6 +10,7 @@ PTU_Client *ptu;
 ros::ServiceClient grab_srv;
 ros::ServiceClient reg_srv;
 int pan_interval;
+float tilt;
 
 bool whole_scan(control_morse::WholeScan::Request &req,
                 control_morse::WholeScan::Response &res)
@@ -35,7 +36,7 @@ bool whole_scan(control_morse::WholeScan::Request &req,
             ptu_goal.tilt_vel=100.0;
 
             ptu_goal.pan= -i*pan_interval + 170;// can't reach 180, keep turning
-            ptu_goal.tilt=30.0;
+            ptu_goal.tilt=tilt;
 
             //move ptu
             ptu->sendGoal(ptu_goal);
@@ -83,6 +84,7 @@ int main(int argc, char **argv)
     ptu = new PTU_Client("/SetPTUState", true);
 
     pn.param<int>("pan_interval", pan_interval, 45);
+    pn.param<float>("tilt", tilt, 30);
 
     ros::spin();
 }

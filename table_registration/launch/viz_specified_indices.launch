@@ -1,6 +1,6 @@
 <launch>
 	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
-	    <rosparam param="specify_index">[5]</rosparam>
+	    <rosparam param="specify_index">[8]</rosparam>
 		<param name="collection" value="icp_clouds"/>
 	</node>
 

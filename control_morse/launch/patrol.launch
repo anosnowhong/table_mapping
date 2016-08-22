@@ -18,6 +18,7 @@
     <!-- Provide PTU control service to do a 'whole' or 'single' scan, called by getmap-->
 	<node pkg="control_morse" type="ptu_control" name="ptu_control" output="screen">
 	    <param name="pan_interval" value="30"/>
+	    <param name="tilt" value="30"/>
 	</node>
 
     <!-- The topic to publish the detected tables on -->
@@ -50,7 +51,7 @@
     <!-- launch map processing node, get the patrol goal and mark on the map-->
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">
 		<param name="search_range" value="20"/>
-		<param name="goal_waiting_time" value="75"/>
+		<param name="goal_waiting_time" value="100"/>
     </node>
     
 </launch>

@@ -118,7 +118,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud2(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
 
-    table_registration::ICP_Cloud whole_table_with_cloud_index;
     int idd = 360/pan_interval;
     for(int i=0;i<plane_num;i++)
     {
@@ -127,6 +126,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         tfed_cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
         tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
         cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        table_registration::ICP_Cloud whole_table_with_cloud_index;
 
         ROS_INFO("Looking for cloud index %d, and nearby clouds", plane_index[i]);
         //the cloud before the cloud that contains plane
