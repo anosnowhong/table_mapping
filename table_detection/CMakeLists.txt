@@ -5,13 +5,11 @@ project(table_detection)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  primitive_extraction
   roscpp
   message_generation
-  primitives_to_tables
   sensor_msgs
   strands_perception_msgs
-        mongodb_store
+  mongodb_store
 )
 
 ## System dependencies are found with CMake's conventions
@@ -62,11 +60,11 @@ add_definitions(${PCL_DEFINITIONS})
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  DetectTables.srv
   ROIcloud.srv
-        db_extract.srv
-        db_extract_whole_table.srv
-        db_table_clouds.srv
+  db_extract.srv
+  db_extract_whole_table.srv
+  db_table_clouds.srv
+  db_table.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -82,7 +80,6 @@ generate_messages(
   std_msgs  # Or other packages containing msgs
   sensor_msgs
   strands_perception_msgs
-  primitive_extraction
 )
 
 ###################################
@@ -97,7 +94,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES table_detection
-   CATKIN_DEPENDS primitive_extraction roscpp message_runtime primitives_to_tables sensor_msgs strands_perception_msgs
+   CATKIN_DEPENDS roscpp message_runtime sensor_msgs strands_perception_msgs
 #  DEPENDS system_lib
 )
 
@@ -118,28 +115,23 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(detection src/detection.cpp)
 add_executable(grabber src/grabber.cpp)
-add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
+#add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 add_executable(table_status src/table_status.cpp)
 add_executable(db_table_extraction src/db_table_extraction.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(detection primitive_extraction_generate_messages_cpp primitives_to_tables_generate_messages_cpp table_detection_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(detection
-  ${catkin_LIBRARIES}
-)
 target_link_libraries(grabber
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
-target_link_libraries(db_cloud_extraction
-        ${catkin_LIBRARIES}
-        ${PCL_LIBRARIES}
-        )
+#target_link_libraries(db_cloud_extraction
+#        ${catkin_LIBRARIES}
+#        ${PCL_LIBRARIES}
+#        )
 
 target_link_libraries(table_status
         ${catkin_LIBRARIES}

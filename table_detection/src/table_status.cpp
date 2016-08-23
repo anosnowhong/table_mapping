@@ -54,9 +54,9 @@ int main(int argc, char** argv)
             mark_arr.markers[i].points[1].y = result_tables[i]->tabletop.points[0].y;
             mark_arr.markers[i].points[1].z = result_tables[i]->tabletop.points[0].z;
 
-            mark_arr.markers[i].scale.x = 0.1;
-            mark_arr.markers[i].scale.y = 0.1;
-            mark_arr.markers[i].scale.z = 0.1;
+            mark_arr.markers[i].scale.x = 0.01;
+            mark_arr.markers[i].scale.y = 0.01;
+            mark_arr.markers[i].scale.z = 0.01;
             mark_arr.markers[i].pose.orientation.w = 1;
             mark_arr.markers[i].color.a = 1.0;
             mark_arr.markers[i].color.r = 1.0;

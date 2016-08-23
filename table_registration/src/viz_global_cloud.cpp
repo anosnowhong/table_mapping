@@ -120,11 +120,6 @@ int main(int argc, char** argv)
         pub_cloud.header.stamp = ros::Time();
     }
 
-    if(Debug){
-        mongodb_store::MessageStoreProxy tt(n,"test");
-        tt.insert(pub_cloud);
-    }
-
     while(ros::ok())
     {
         pub.publish(pub_cloud);

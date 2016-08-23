@@ -2,11 +2,10 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <primitive_extraction/ExtractPrimitives.h>
 #include <pcl_ros/point_cloud.h>
 #include <table_detection/db_extract.h>
 #include <table_detection/db_extract_whole_table.h>
-#include <primitives_to_tables/PrimitivesToTables.h>
+#include <table_detection/db_table_clouds.h>
 #include <strands_perception_msgs/Table.h>
 #include <std_msgs/Int32.h>
 
@@ -17,7 +16,7 @@
  * store to table_plane collection
  * */
 
-ros::ServiceClient primitive_client;
+ros::ServiceClient table_client;
 ros::NodeHandlePtr nh;
 
 double min_height;
@@ -131,8 +130,8 @@ bool extract(table_detection::db_extract::Request &req, table_detection::db_extr
     for(;checked_num<result_pc2.size();checked_num++)
     {
         //call the extraction service,get primitives planes
-        primitive_client.waitForExistence();
-        primitive_extraction::ExtractPrimitives req;
+        table_client.waitForExistence();
+        table_detection::db_table_clouds req;
         req.request.pointcloud=*result_pc2[checked_num];
         primitive_client.call(req);
 
@@ -224,7 +223,7 @@ int main(int argc, char** argv)
     pn.param<double>("min_side_ration", min_side_ratio, 0.25);
     pn.param<double>("min_area", min_area, 0.3);
 
-    primitive_client=nh->serviceClient<primitive_extraction::ExtractPrimitives>("extract_primitives");
+    table_client=nh->serviceClient<table_detection::db_table_clouds>("db_table_clouds");
     ros::ServiceServer ext_srv = nh->advertiseService("db_extract", extract);
     ros::ServiceServer ext_srv2 = nh->advertiseService("db_extract_whole_table", extract_whole_table);
 
