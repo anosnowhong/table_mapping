@@ -15,12 +15,14 @@
 #include <pcl/features/normal_3d.h>
 #include <strands_perception_msgs/Table.h>
 #include <pcl/surface/concave_hull.h>
+#include <std_msgs/Int32.h>
 
 
 #define Debug true
 typedef pcl::PointXYZ  Point;
 typedef pcl::PointCloud<Point> pcl_cloud;
 ros::NodeHandlePtr nh;
+int checked_num=0;
 
 void extract_convex(pcl_cloud::Ptr cloud_in,
                     pcl::PointIndices::Ptr inliers,
@@ -42,6 +44,52 @@ void extract_convex(pcl_cloud::Ptr cloud_in,
     chull.reconstruct (*cloud_out);
 }
 
+//2d binding box for table shape
+void binding_box()
+{
+
+}
+//loading msg form collection and merge tables that may linked together
+bool merge_table_msg()
+{
+    //load table shapes
+    mongodb_store::MessageStoreProxy table_shape(*nh, "table_shapes");
+    std::vector< boost::shared_ptr<strands_perception_msgs::Table> > result_tables;
+    table_shape.query<strands_perception_msgs::Table>(result_tables);
+
+    //set or load checked_num
+    std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
+    table_shape.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
+    if(checked_amount.size() == 0){
+        std_msgs::Int32 tmp;
+        tmp.data = checked_num;
+        table_shape.insertNamed("checked_num",tmp);
+    }
+    else{
+        //load record form mongodb
+        checked_num = checked_amount[0]->data;
+    }
+    ROS_INFO("Found %lu table shapes, already checked %d", result_tables.size(), checked_num);
+    //extract points from msg
+
+    pcl_cloud::Ptr new_cloud(new pcl_cloud());
+    for(int j=0;j<result_tables.size();j++){
+
+        for(int i=0;i<(*result_tables[j]).tabletop.points.size();i++){
+            Point tt;
+            tt.x = (*result_tables[j]).tabletop.points[i].x;
+            tt.y = (*result_tables[j]).tabletop.points[i].y;
+            tt.z = (*result_tables[j]).tabletop.points[i].z;
+            new_cloud->push_back(tt);
+        }
+
+    }
+
+    return true;
+
+}
+
+//extract table clouds, convex hull, and convert to msg stored in DB
 bool extract_table_msg(pcl_cloud::Ptr cloud_in)
 {
     pcl_cloud::Ptr cloud1(new pcl_cloud());
@@ -152,14 +200,14 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in)
     }
 
     //insert to mongodb
-    mongodb_store::MessageStoreProxy table_shape(*nh, "table_shape");
+    mongodb_store::MessageStoreProxy table_shape(*nh, "table_shapes");
     table_shape.insert(table_msg);
     ROS_INFO("Insert table shape to collection.");
 
     return true;
 }
 
-
+//extract whole table clouds, stored in DB
 bool extract_table(pcl_cloud::Ptr cloud)
 {
 
@@ -249,25 +297,49 @@ bool extract_table(pcl_cloud::Ptr cloud)
     //store to mongodb
     mongodb_store::MessageStoreProxy messageStore(*nh,"whole_table_clouds");
     messageStore.insert(table_cloud);
+
+     pcl_cloud::Ptr cloud_hull(new pcl_cloud());
+    extract_convex(cloud1,inliers,coefficients,cloud_hull);
+    ROS_INFO("Convex cloud has been extracted contains %lu points", (*cloud_hull).points.size());
+    if(Debug){
+        std::string name="/home/parallels/debug/.pcd";
+        std::stringstream ss;
+        ss<< "convex";
+        std::string str = ss.str();
+        name.insert(name.length()-4, str);
+        std::cout<<name<<std::endl;
+        pcl::io::savePCDFileASCII(name, *cloud_hull);
+    }
+
+    //construct a table msg
+    strands_perception_msgs::Table table_msg;
+    table_msg.pose.pose.orientation.w = 1.0;
+    table_msg.header.frame_id = "/map";
+    table_msg.header.stamp = ros::Time();
+    for(int i=0;i<(*cloud_hull).points.size();i++){
+        geometry_msgs::Point32 pp;
+        pp.x = (*cloud_hull).at(i).x;
+        pp.y = (*cloud_hull).at(i).y;
+        pp.z = (*cloud_hull).at(i).z;
+        table_msg.tabletop.points.push_back(pp);
+    }
+
+    //insert to mongodb
+    mongodb_store::MessageStoreProxy table_shape(*nh, "whole_table_shapes");
+    table_shape.insert(table_msg);
+    ROS_INFO("Insert whole table shape to collection.");
+
 }
 
-
+//store icp cloud -> table cloud plane to DB
 bool extract(table_detection::db_table_clouds::Request &req, table_detection::db_table_clouds::Response &res)
 {
-    //load clouds form icp_clouds
-    mongodb_store::MessageStoreProxy messageStore(*nh,"icp_clouds");
-    std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
-    //search all point clouds
-    messageStore.query<sensor_msgs::PointCloud2>(result_pc2);
 
-    pcl_cloud::Ptr loaded_cloud;
-    for(int i=0;i<result_pc2.size();i++){
+    pcl_cloud::Ptr loaded_cloud(new pcl_cloud());
+    pcl::fromROSMsg(req.cloud, *loaded_cloud);
+    bool rc = extract_table(loaded_cloud);
 
-        loaded_cloud.reset(new pcl_cloud());
-        pcl::fromROSMsg(*result_pc2[i], *loaded_cloud);
-        extract_table(loaded_cloud);
-
-    }
+    //extract convex hull for whole table
 
     return true;
 }

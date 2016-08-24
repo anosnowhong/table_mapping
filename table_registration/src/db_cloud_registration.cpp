@@ -175,6 +175,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
         icp_cloud.insert(whole_table_with_cloud_index);
         ROS_INFO("Done. ICP registered cloud has been stored to icp_cloud collection. ");
 
+        //extract table cloud from icp cloud
         while(!extract_client2.waitForExistence())
             ROS_INFO("Waiting for service db_extract_whole_table to be available");
         table_req.request.cloud=whole_table;

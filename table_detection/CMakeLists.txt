@@ -116,7 +116,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(grabber src/grabber.cpp)
-#add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
+add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 add_executable(table_status src/table_status.cpp)
 add_executable(db_table_extraction src/db_table_extraction.cpp)
 
@@ -128,10 +128,10 @@ target_link_libraries(grabber
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
-#target_link_libraries(db_cloud_extraction
-#        ${catkin_LIBRARIES}
-#        ${PCL_LIBRARIES}
-#        )
+target_link_libraries(db_cloud_extraction
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
 
 target_link_libraries(table_status
         ${catkin_LIBRARIES}

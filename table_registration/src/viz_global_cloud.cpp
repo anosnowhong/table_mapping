@@ -87,7 +87,6 @@ int main(int argc, char** argv)
         else{
 
 
-
             ROS_INFO("Loading %lu Point Clouds!",indices.size());
             for(int i=0;i<indices.size();i++) {
                 pcl::fromROSMsg((*result_icp[indices[i]]).icp_cloud, *cloud_store);

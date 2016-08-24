@@ -7,7 +7,7 @@
     <!-- provide service for getmap, and publish ROI cloud which will stored by soma_io to ws_observation-->
     <node pkg="table_detection" type="grabber" name="grabber" output="screen">
         <param name="min_distance" value="0.0"/>
-        <param name="max_distance" value="2.5"/>
+        <param name="max_distance" value="3.5"/>
     </node>
 
     <!--soma_io node communicate with mongoDB to store the ROI cloud for later use -->
