@@ -87,7 +87,6 @@ int main(int argc, char** argv)
         else{
 
 
-
             ROS_INFO("Loading %lu Point Clouds!",indices.size());
             for(int i=0;i<indices.size();i++) {
                 pcl::fromROSMsg((*result_icp[indices[i]]).icp_cloud, *cloud_store);
@@ -118,11 +117,6 @@ int main(int argc, char** argv)
     else{
         pub_cloud.header = (*result_icp[0]).icp_cloud.header;
         pub_cloud.header.stamp = ros::Time();
-    }
-
-    if(Debug){
-        mongodb_store::MessageStoreProxy tt(n,"test");
-        tt.insert(pub_cloud);
     }
 
     while(ros::ok())

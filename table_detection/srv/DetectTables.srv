@@ -1,4 +1,0 @@
-sensor_msgs/PointCloud2 pointcloud
----
-strands_perception_msgs/Table[] tables
-primitive_extraction/Indices[] indices
