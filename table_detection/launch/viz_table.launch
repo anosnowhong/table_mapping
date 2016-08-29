@@ -1,6 +1,0 @@
-<launch>
-	<node pkg="table_detection" type="table_status" name="table_status" output="screen">
-		<param name="collection" value="table_planes"/>
-	</node>
-
-</launch>

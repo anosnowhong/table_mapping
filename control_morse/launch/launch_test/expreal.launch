@@ -30,16 +30,7 @@
 	<node pkg="table_detection" type="db_cloud_extraction" name="db_cloud_extraction" output="screen">
 	</node>
 	<node pkg="table_detection" type="db_table_extraction" name="db_table_extraction" output="screen">
-		<param name="normal_angle" value="25.0"/>
 	</node>
 
 
-    <!-- launch map processing node, get the patrol goal and mark on the map-->
-    <node pkg="control_morse" type="heartbeat" name="heartbeat" output="screen">
-    </node>
-    <node pkg="control_morse" type="getmap" name="getmap" output="screen">
-		<param name="search_range" value="20"/>
-		<param name="goal_waiting_time" value="100"/>
-    </node>
-    
 </launch>

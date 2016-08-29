@@ -6,6 +6,7 @@ project(control_morse)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
 	nav_msgs
+	std_msgs
 	actionlib
 	move_base_msgs
 	roscpp
@@ -140,6 +141,7 @@ include_directories(
 # add_executable(trash_node src/trash_node.cpp)
 add_executable(getmap src/getmap.cpp)
 add_executable(ptu_control src/ptu_control.cpp)
+add_executable(heartbeat src/heartbeat.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -156,6 +158,9 @@ target_link_libraries(getmap
 	)
 
 target_link_libraries(ptu_control
+		${catkin_LIBRARIES}
+		)
+target_link_libraries(heartbeat
 		${catkin_LIBRARIES}
 		)
 #############

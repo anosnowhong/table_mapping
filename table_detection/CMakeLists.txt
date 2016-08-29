@@ -118,6 +118,7 @@ include_directories(
 add_executable(grabber src/grabber.cpp)
 add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 add_executable(table_status src/table_status.cpp)
+add_executable(table_all src/table_all.cpp)
 add_executable(db_table_extraction src/db_table_extraction.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -134,6 +135,10 @@ target_link_libraries(db_cloud_extraction
         )
 
 target_link_libraries(table_status
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(table_all
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )

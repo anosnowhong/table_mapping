@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <nav_msgs/GetMap.h>
+#include <std_msgs/String.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <opencv2/core/core.hpp>
@@ -40,7 +41,7 @@ void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<
     cv::flann::Index kdtree(cv::Mat(pd_arr).reshape(1),index_params);
 
     int radius=search_range; //pixel
-    double radius_square = pow(search_range*0.05, 2);//meter = (x1-x2)^2 + (y1-y2)^2
+    double radius_square = search_range*0.05;//pow(search_range*0.05, 2);//meter = (x1-x2)^2 + (y1-y2)^2
     //query point
     cv::Point2f p2d;
     p2d.x=p2d.y=0.0;
@@ -121,9 +122,9 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
         mark_arr.markers[i].pose.orientation.w = 1;
 
         //x=y=1 => 1meter,
-        double ratio = (search_range*0.05*2)/1.0;//(radius * 2)/default_marker_length
-        mark_arr.markers[i].scale.x = 0.5*ratio;
-        mark_arr.markers[i].scale.y = 0.5*ratio;
+        //double ratio = (search_range*0.05*2)/1.0;//(radius * 2)/default_marker_length
+        mark_arr.markers[i].scale.x = 0.1;
+        mark_arr.markers[i].scale.y = 0.1;
         mark_arr.markers[i].scale.z = 0.1;
         mark_arr.markers[i].color.a = 1.0;
         mark_arr.markers[i].color.r = 1.0;
@@ -270,7 +271,7 @@ bool pause_action(control_morse::Pause::Request &req, control_morse::Pause::Resp
 }
 
 //just a loop thread for pause_action
-void pause_thread(sensor_msgs::PointCloud2 d1)
+void pause_thread(const std_msgs::String heartbeat)
 {
     //if pause service is called, then stop action
     if(state_pause)
@@ -289,7 +290,7 @@ void pause_thread(sensor_msgs::PointCloud2 d1)
     }
 }
 
-void main_thread(sensor_msgs::PointCloud2 d2)
+void main_thread(const std_msgs::String heartbeat)
 {
 
     nav_msgs::GetMap srv;
@@ -324,15 +325,14 @@ int main(int argc, char **argv)
     //get params
     pn.param<int>("search_range", search_range, 20);
     pn.param<int>("goal_waiting_time", waiting_time, 60);
-    //pn.getParam("/getmap/search_range", search_range);
 
     vis_pub = n.advertise<visualization_msgs::MarkerArray>("/waypoints", 1);
     ros::ServiceServer server = n.advertiseService("pause_morse", pause_action);
     scan_srv = n.serviceClient<control_morse::WholeScan>("do_scan");
     client  = n.serviceClient<nav_msgs::GetMap>("static_map");
 
-    ros::Subscriber sub = n.subscribe("/head_xtion/depth/points",1,pause_thread);
-    ros::Subscriber sub2 = n.subscribe("/head_xtion/depth/points",1,main_thread);
+    ros::Subscriber sub = n.subscribe("/heartbeat",1,pause_thread);
+    ros::Subscriber sub2 = n.subscribe("/heartbeat",1,main_thread);
 
     std::cout<<"using search range:"<<search_range<<std::endl;
 
