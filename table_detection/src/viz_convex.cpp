@@ -6,6 +6,9 @@
 #include <mongodb_store/message_store.h>
 #include <strands_perception_msgs/Table.h>
 
+typedef pcl::PointXYZ  Point;
+typedef pcl::PointCloud<Point> pcl_cloud;
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "viz_convex");
@@ -26,7 +29,7 @@ int main(int argc, char** argv)
 
     //publish multiple point cloud msg
     std::vector<sensor_msgs::PointCloud2> cloud_msg;
-    std::vector<pcl::PointCloud<pcl::PointXYZ> > cloud_arr;
+    std::vector<pcl_cloud > cloud_arr;
 
 
     cloud_arr.resize(indices.size());
@@ -36,7 +39,7 @@ int main(int argc, char** argv)
         int p_size = result_tables[indices[j]]->tabletop.points.size();
 
         for(int i=0;i<p_size;i++){
-            pcl::PointXYZ pp;
+            Point pp;
             pp.x = result_tables[indices[j]]->tabletop.points.at(i).x;
             pp.y = result_tables[indices[j]]->tabletop.points.at(i).y;
             pp.z = result_tables[indices[j]]->tabletop.points.at(i).z;

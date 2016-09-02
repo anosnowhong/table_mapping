@@ -8,10 +8,14 @@
 //#include <pcl/io/pcd_io.h>
 //#include <boost/lexical_cast.hpp>
 
-
 #define DBUG false
-pcl::PointCloud<pcl::PointXYZ>::Ptr msg_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-pcl::PointCloud<pcl::PointXYZ>::Ptr short_range_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+
+typedef pcl::PointXYZ  Point;
+typedef pcl::PointCloud<Point> pcl_cloud;
+
+pcl_cloud::Ptr msg_cloud(new pcl_cloud());
+pcl_cloud::Ptr short_range_cloud(new pcl_cloud());
+
 ros::Publisher pub;
 boost::mutex cloud_mutex;
 float min_distance, max_distance;
@@ -40,7 +44,7 @@ void callback(const sensor_msgs::PointCloud2 &msg)
     //special condition: force point cloud from morse to false as they does contain nan point
     grabed_pc.is_dense=false;
 
-    sleep(1);
+    usleep(100000);
 }
 
 bool grab_pc2(table_detection::ROIcloud::Request &req, table_detection::ROIcloud::Response &res)

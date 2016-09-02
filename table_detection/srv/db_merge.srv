@@ -1,2 +1,2 @@
 ---
-int32[] cloud_has_plane
+strands_perception_msgs/Table table
