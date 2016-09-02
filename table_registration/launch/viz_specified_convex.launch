@@ -1,6 +1,7 @@
 <launch>
 	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
-		<param name="collection" value="whole_table_convex"/>
+	    <rosparam param="specify_index">[8]</rosparam>
+		<param name="collection" value="table_convex"/>
 	</node>
 
 </launch>

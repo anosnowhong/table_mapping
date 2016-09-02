@@ -10,7 +10,6 @@
 #include <pcl/io/pcd_io.h>
 #include <table_detection/db_extract_whole_table.h>
 
-
 /* #A backend node that does the registration work with MongoDB.
  * Load point cloud and tf data from ws_observation collection.
  * Convert to global coordinate system (/map)
@@ -18,6 +17,8 @@
  * */
 typedef boost::shared_ptr<geometry_msgs::TransformStamped>  TransformStampedPtr;
 typedef boost::shared_ptr<sensor_msgs::PointCloud2> PointCloud2Ptr;
+typedef pcl::PointXYZ  Point;
+typedef pcl::PointCloud<Point> pcl_cloud;
 
 #define Debug false
 
@@ -55,23 +56,23 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     ROS_INFO("pc2 amount: %lu tf amount: %lu",result_pc2.size(), result_tf.size());
     ROS_INFO("Remaining To Transform: %d",queue);
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr db_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr db_store(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl_cloud::Ptr db_cloud(new pcl_cloud());
+    pcl_cloud::Ptr db_store(new pcl_cloud());
     sensor_msgs::PointCloud2 db_store_msg;
     geometry_msgs::Vector3 trans;
     geometry_msgs::Quaternion qua;
     for(int i=0 ;i<queue;i++)
     {
         //reset
-        db_cloud.reset(new pcl::PointCloud<pcl::PointXYZ>);
-        db_store.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        db_cloud.reset(new pcl_cloud());
+        db_store.reset(new pcl_cloud());
 
         trans = result_tf[i+stored_num-queue]->transform.translation;
         qua = result_tf[i+stored_num-queue]->transform.rotation;
         //load point cloud data to pcl::PointCloud2
         pcl::fromROSMsg(*result_pc2[i+stored_num-queue],*db_cloud);
         //do the transformation things
-        registration_operator<pcl::PointXYZ> reg_op(db_cloud,trans,qua);
+        registration_operator<Point> reg_op(db_cloud,trans,qua);
         reg_op.to_global(*db_store);
 
         if(Debug){
@@ -107,25 +108,25 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     //recorde the index of point cloud that can extract a plane
     //use the index to do accurate icp by using the nearby clouds
     mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
-    registration_operator<pcl::PointXYZ> reg_icp;
+    registration_operator<Point> reg_icp;
     //requery mongodb get latest result
     result_global_pc2.clear();
     cloud_store.query<sensor_msgs::PointCloud2>(result_global_pc2);
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud1(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tfed_cloud2(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl_cloud::Ptr cloud1(new pcl_cloud());
+    pcl_cloud::Ptr cloud2(new pcl_cloud());
+    pcl_cloud::Ptr tfed_cloud1(new pcl_cloud());
+    pcl_cloud::Ptr tfed_cloud2(new pcl_cloud());
+    pcl_cloud::Ptr cloud_sum(new pcl_cloud());
 
     int idd = 360/pan_interval;
     for(int i=0;i<plane_num;i++)
     {
-        cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        tfed_cloud1.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        tfed_cloud2.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        cloud_sum.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        cloud1.reset(new pcl_cloud());
+        cloud2.reset(new pcl_cloud());
+        tfed_cloud1.reset(new pcl_cloud());
+        tfed_cloud2.reset(new pcl_cloud());
+        cloud_sum.reset(new pcl_cloud());
         table_registration::ICP_Cloud whole_table_with_cloud_index;
 
         ROS_INFO("Looking for cloud index %d, and nearby clouds", plane_index[i]);
@@ -186,7 +187,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     }
 
     ROS_INFO("Done. Whole Table has been extracted. ");
-
 
     return true;
 }

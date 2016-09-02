@@ -2,8 +2,7 @@
 	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
 	    <!--<rosparam param="specify_index">[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,23,25,26,27,28,29,30,31,32,33,34,35,40,45]</rosparam>-->
 	    <rosparam param="specify_index">[0]</rosparam>
-	    <!--<rosparam param="specify_index">[5]</rosparam>-->
-		<param name="collection" value="global_clouds"/>
+		<param name="collection" value="table_clouds_noise"/>
 		<!--<param name="collection" value="icp_clouds"/>-->
 	</node>
 
