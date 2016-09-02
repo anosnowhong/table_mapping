@@ -12,7 +12,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <signal.h>
 
-//#include <table_detection/ROIcloud.h>
+#include <table_detection/db_table_centre.h>
 #include <control_morse/WholeScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <control_morse/Pause.h>
@@ -23,16 +23,12 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 ros::Publisher vis_pub;
 ros::ServiceClient scan_srv;
 ros::ServiceClient client;
+ros::ServiceClient table_client;
 control_morse::WholeScan scan_type;
 bool state_pause=false;
 int search_range;
 int waiting_time;
 MoveBaseClient *ac;
-
-void merge_freecell(std::vector<cv::Point2i> &free_space)
-{
-    //free_space
-}
 
 void map_kdtree(std::vector<cv::Point2f> &pd_arr, cv::Mat &cv_map,  std::vector<cv::Point2i> &free_space, int search_range)
 {
@@ -160,8 +156,8 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
             ROS_INFO("goal succeeded, scanning...");
             //grab_srv.call(grab_cloud);
             scan_type.request.scan_type="whole";
-            scan_srv.call(scan_type);
             scan_srv.waitForExistence();
+            scan_srv.call(scan_type);
         }
         else
         {
@@ -169,6 +165,10 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
             ac->cancelGoal();
         }
     }
+    //when finish one round, inform maintaining node to tidy up data
+    table_detection::db_table_centre tidy_up_centres;
+    table_client.waitForExistence();
+    table_client.call(tidy_up_centres);
 
 }
 
@@ -330,6 +330,7 @@ int main(int argc, char **argv)
     ros::ServiceServer server = n.advertiseService("pause_morse", pause_action);
     scan_srv = n.serviceClient<control_morse::WholeScan>("do_scan");
     client  = n.serviceClient<nav_msgs::GetMap>("static_map");
+    table_client  = n.serviceClient<table_detection::db_table_centre>("db_table_centre");
 
     ros::Subscriber sub = n.subscribe("/heartbeat",1,pause_thread);
     ros::Subscriber sub2 = n.subscribe("/heartbeat",1,main_thread);

@@ -190,9 +190,10 @@ target_link_libraries(heartbeat
 #   FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
 # )
-
+#
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
+#	 launch
 #   # myfile1
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
