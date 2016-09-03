@@ -64,9 +64,9 @@ cv::Point3f Table_Tool::table_centre(strands_perception_msgs::Table msg) {
 template <class Point>
 void Table<Point>::dbtable_cloud_centre(std::string collection, std::vector<point_type>& table_centre_index) {
     //load table cloud (plane that extracted form single scan)
-    mongodb_store::MessageStoreProxy table_merge(*nh, collection);
+    mongodb_store::MessageStoreProxy table(*nh, collection);
     std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_tables;
-    table_merge.query<sensor_msgs::PointCloud2>(result_tables);
+    table.query<sensor_msgs::PointCloud2>(result_tables);
     //convert msg to cloud
     std::vector<cloud_type> table_clouds;
     table_clouds.resize(result_tables.size());
@@ -104,9 +104,9 @@ void Table<Point>::dbtable_cloud_centre(std::string collection, std::vector<poin
 template <class Point>
 void Table<Point>::dbtable_kdtree(std::string collection, pcl::KdTreeFLANN<point_type> &kdtree) {
     //load table cloud (plane that extracted form single scan)
-    mongodb_store::MessageStoreProxy table_merge(*nh, collection);
+    mongodb_store::MessageStoreProxy table(*nh, collection);
     std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_tables;
-    table_merge.query<sensor_msgs::PointCloud2>(result_tables);
+    table.query<sensor_msgs::PointCloud2>(result_tables);
     //convert msg to cloud
     std::vector<cloud_type > table_clouds;
     table_clouds.resize(result_tables.size());
@@ -141,6 +141,24 @@ void Table<Point>::dbtable_kdtree(std::string collection, pcl::KdTreeFLANN<point
     kdtree.setInputCloud(table_centre_cloud);
 }
 
+template <class Point>
+void Table<Point>::dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN<point_type> &kdtree) {
+    //load table cloud (plane that extracted form single scan)
+    mongodb_store::MessageStoreProxy table(*nh, collection);
+    std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_tables;
+    table.query<sensor_msgs::PointCloud2>(result_tables);
+
+    //clouds sum
+    cloud_ptr all_table_clouds(new cloud_type());
+    cloud_ptr table_clouds(new cloud_type());
+    for (int i = 0; i < result_tables.size(); i++) {
+        pcl::fromROSMsg(*result_tables[i], *table_clouds);
+        *all_table_clouds += *table_clouds;
+    }
+
+    //construct kdtree from index
+    kdtree.setInputCloud(all_table_clouds);
+}
 /*
     if (Debug) {
         ROS_INFO("table centre number: %lu", table_center_index.size());

@@ -18,3 +18,6 @@ target_link_libraries(nan_remove ${PCL_LIBRARIES})
 
 add_executable(force_dense ${CMAKE_CURRENT_SOURCE_DIR}/force_dense.cpp)
 target_link_libraries(force_dense ${PCL_LIBRARIES})
+
+add_executable(outliers ${CMAKE_CURRENT_SOURCE_DIR}/remove_outliers.cpp)
+target_link_libraries(outliers ${PCL_LIBRARIES})

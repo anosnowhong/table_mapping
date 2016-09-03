@@ -1,0 +1,2 @@
+geometry_msgs/Point32 table_centre
+std_msgs/Int32 increment

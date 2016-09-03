@@ -31,11 +31,17 @@ public:
     //if you want to use mongodb options
     Table(ros::NodeHandlePtr nh_in);
 
+
     /* construct a kdtree to store table centre(which is calculate during each scan), (load all table cloud from db)
      * Given db collection that contains sensor_msgs::PointCloud2
      * calculate all the centre in given collection, and put in a given pcl kdtree
      */
     void dbtable_kdtree(std::string collection, pcl::KdTreeFLANN<point_type> &kdtree);
+
+    /*
+     * Instead of table centre using all table clouds extracted
+     */
+    void dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN<point_type> &kdtree);
 
     /*
      * calculate table centre for a single scan
