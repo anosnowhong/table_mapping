@@ -19,7 +19,9 @@
 #include <table_detection/db_merge.h>
 #include <table_detection/db_table_centre.h>
 #include "table_detection/viz_points.h"
-#include "table_detection/table_tool.h"
+#include "table_detection/table_tool.hpp"
+#include <table_detection/table_increment.h>
+#include <table_detection/table_increment_arr.h>
 
 #define Debug true
 typedef pcl::PointXYZ  Point;
@@ -27,6 +29,7 @@ typedef pcl::PointCloud<Point> pcl_cloud;
 ros::NodeHandlePtr nh;
 int checked_num=0;
 int table_knn;
+float bad_observation_remove_radius;
 
 void extract_convex(pcl_cloud::Ptr cloud_in,
                     pcl::PointIndices::Ptr inliers,
@@ -109,7 +112,7 @@ bool table_centre_group()
 {
     //load table centres and visualization
     mongodb_store::MessageStoreProxy table_centre(*nh, "table_centre");
-    std::vector<boost::shared_ptr<geometry_msgs::Point32> >result_tables;
+    std::vector<boost::shared_ptr<geometry_msgs::Point32> > result_tables;
     table_centre.query<geometry_msgs::Point32>(result_tables);
 
     if(Debug) {
@@ -138,10 +141,15 @@ bool table_centre_group()
 
     //start inserting
     geometry_msgs::Polygon points_arr;
-    for(int i=checked_num;i<result_tables.size();i++){
-        points_arr.points.push_back(*result_tables[i]);
+    for(;checked_num<result_tables.size();checked_num++){
+        points_arr.points.push_back(*result_tables[checked_num]);
     }
     table_centre_group.insert(points_arr);
+
+    //update check_num in mongodb
+    std_msgs::Int32 tmp;
+    tmp.data = checked_num;
+    table_centre_group.updateNamed("checked_num",tmp);
 
     return true;
     /*
@@ -153,6 +161,45 @@ bool table_centre_group()
         }
     }
      */
+
+}
+
+//need at least 2 round to analyse data.
+void table_increment_nei()
+{
+    //loading all grouped table centres
+    mongodb_store::MessageStoreProxy table_centre_group(*nh, "table_centre_group");
+    std::vector<boost::shared_ptr<geometry_msgs::Polygon> > result_tables;
+    table_centre_group.query<geometry_msgs::Polygon>(result_tables,mongo::BSONObj(),mongo::BSONObj(),BSON("_meta.inserted_at"<<1));
+
+    //all table cloud kd tree(single scan)
+    Table<Point> checker(nh);
+    pcl::KdTreeFLANN<Point> kdtree;
+    checker.dbtable_cloud_kdtree("table_clouds", kdtree);
+
+    std::vector<int> point_index;
+    std::vector<float> point_distance;
+    table_detection::table_increment_arr increment_arr;
+    table_detection::table_increment increment;
+
+    //different round data
+    for(int i=0;i<result_tables.size();i++){
+        for(int j=0;j<result_tables[i]->points.size();j++){
+            Point query_p;
+            //query pcl point
+            query_p.x = result_tables[i]->points.at(j).x;
+            query_p.y = result_tables[i]->points.at(j).y;
+            query_p.z = result_tables[i]->points.at(j).z;
+            //copy to ros point32 as well
+            int nei = kdtree.radiusSearch(query_p,bad_observation_remove_radius,point_index,point_distance);
+            increment.table_centre = result_tables[i]->points.at(j);
+            increment.increment.data = nei;
+            increment_arr.increment_arr.push_back(increment);
+        }
+    }
+    //store the neighbour increment
+    mongodb_store::MessageStoreProxy table_centre_increment(*nh, "table_centre_increment");
+    table_centre_increment.insert(increment_arr);
 }
 
 bool merge(table_detection::db_merge::Request& req, table_detection::db_merge::Response& res)
@@ -166,6 +213,8 @@ bool group_centre(table_detection::db_table_centre::Request& req, table_detectio
 {
     //group all unchecked table centre to a new collection in one data(Polygen a bunch of points).
     bool rc = table_centre_group();
+    //calculate increment and store
+    table_increment_nei();
 
     return rc;
 }
@@ -178,11 +227,12 @@ int main(int argc, char** argv)
 
     //can only use 1 neighbour
     pn.param<int>("table_knn", table_knn, 1);
+    pn.param<float>("bad_observation_remove_radius", bad_observation_remove_radius, 0.2);
     ros::ServiceServer table_srv = nh->advertiseService("db_merge", merge);
     //store one round table centre
     ros::ServiceServer table_centre_srv = nh->advertiseService("db_table_centre", group_centre);
 
-    table_kdtree();
+    table_increment_nei();
 
     ros::spin();
 

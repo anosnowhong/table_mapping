@@ -34,6 +34,7 @@ bool extract(table_detection::db_extract::Request &req, table_detection::db_extr
     mongodb_store::MessageStoreProxy table_store(*nh,"table_planes");
     std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
 
+
     //search all point clouds
     global_clouds.query<sensor_msgs::PointCloud2>(result_pc2);
 
