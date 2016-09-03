@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   sensor_msgs
+  table_detection
 )
 
 #find_package(ZLIB REQUIRED)

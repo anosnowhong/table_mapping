@@ -1,6 +1,6 @@
 <launch>
 	<node pkg="table_detection" type="table_status" name="table_status" output="screen">
-	    <rosparam param="specify_index">[5]</rosparam>
+	    <rosparam param="specify_index">[0]</rosparam>
 		<param name="collection" value="whole_table_shapes"/>
 	</node>
 

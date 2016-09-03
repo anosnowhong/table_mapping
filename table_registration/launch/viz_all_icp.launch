@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
+		<param name="collection" value="icp_clouds"/>
+	</node>
+</launch>

@@ -1,0 +1,6 @@
+<launch>
+	<node pkg="table_detection" type="table_all" name="table_all" output="screen">
+		<param name="collection" value="whole_table_shapes"/>
+	</node>
+
+</launch>

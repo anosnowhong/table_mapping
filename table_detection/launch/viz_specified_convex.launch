@@ -1,0 +1,7 @@
+<launch>
+	<node pkg="table_detection" type="viz_convex" name="viz_convex" output="screen">
+	    <rosparam param="specify_index">[2]</rosparam>
+		<param name="collection" value="table_shapes"/>
+	</node>
+
+</launch>

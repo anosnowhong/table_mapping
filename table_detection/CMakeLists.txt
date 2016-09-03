@@ -21,6 +21,12 @@ find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+find_package(OpenCV REQUIRED)
+
+#viz optoins
+include_directories(include)
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -65,6 +71,8 @@ add_service_files(
   db_extract_whole_table.srv
   db_table_clouds.srv
   db_table.srv
+  db_merge.srv
+  db_table_centre.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -92,10 +100,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES table_detection
-   CATKIN_DEPENDS roscpp message_runtime sensor_msgs strands_perception_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES table_core
+  CATKIN_DEPENDS roscpp message_runtime sensor_msgs strands_perception_msgs
+  DEPENDS OpenCV PCL
 )
 
 ###########
@@ -109,16 +117,26 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
-# add_library(table_detection
-#   src/${PROJECT_NAME}/table_detection.cpp
-# )
+#### Declare a cpp library
+#add_library(table_core
+#  src/${PROJECT_NAME}/table_tool.cpp
+#        include/table_detection/table_tool.h
+#)
+#target_link_libraries(table_core
+#        ${catkin_LIBRARIES}
+#        ${PCL_LIBRARIES}
+#        ${OpenCV_LIBS}
+#        )
 
 ## Declare a cpp executable
 add_executable(grabber src/grabber.cpp)
 add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
 add_executable(table_status src/table_status.cpp)
+add_executable(table_all src/table_all.cpp)
 add_executable(db_table_extraction src/db_table_extraction.cpp)
+add_executable(db_table_maintaining src/db_table_maintaining.cpp)
+add_executable(viz_convex src/viz_convex.cpp)
+#add_executable(tt include/table_detection/table_tool.hpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -137,7 +155,21 @@ target_link_libraries(table_status
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
+target_link_libraries(table_all
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
 target_link_libraries(db_table_extraction
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        ${OpenCV_LIBS}
+        )
+target_link_libraries(db_table_maintaining
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        ${OpenCV_LIBS}
+        )
+target_link_libraries(viz_convex
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
@@ -155,22 +187,22 @@ target_link_libraries(db_table_extraction
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
-## Mark executables and/or libraries for installation
-# install(TARGETS table_detection table_detection_node
+# Mark executables and/or libraries for installation
+# install(TARGETS table_core
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
-
+#
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+#install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  FILES_MATCHING PATTERN "*.h"
+#  PATTERN ".svn" EXCLUDE
+#)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
+#install(DIRECTORY launch
 #   # myfile1
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
