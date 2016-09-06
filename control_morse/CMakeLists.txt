@@ -140,8 +140,13 @@ include_directories(
 ## Declare a C++ executable
 # add_executable(trash_node src/trash_node.cpp)
 add_executable(getmap src/getmap.cpp)
+add_dependencies(getmap ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(ptu_control src/ptu_control.cpp)
+add_dependencies(ptu_control ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(heartbeat src/heartbeat.cpp)
+add_dependencies(heartbeat ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

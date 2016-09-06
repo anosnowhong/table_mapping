@@ -97,6 +97,7 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
 
     //viz_markers(origin, free_space, height);
 
+    sleep(1);
     visualization_msgs::MarkerArray mark_arr;
     mark_arr.markers.resize(free_space.size());
     for(int i=0;i<free_space.size();i++)

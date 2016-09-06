@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
-  strands_perception_msgs
   mongodb_store
 )
 
@@ -61,8 +60,10 @@ include_directories(include)
 # Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   table_increment.msg
-   table_increment_arr.msg
+   table_neighbour.msg
+   table_neighbour_arr.msg
+   Table.msg
+   table_merge_info.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -90,7 +91,6 @@ generate_messages(
   std_msgs  # Or other packages containing msgs
   sensor_msgs
   geometry_msgs
-  strands_perception_msgs
 )
 
 ###################################
@@ -103,10 +103,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES table_core
-  CATKIN_DEPENDS roscpp message_runtime sensor_msgs strands_perception_msgs
-  DEPENDS OpenCV PCL
+#  INCLUDE_DIRS include
+#  LIBRARIES table_core
+#  CATKIN_DEPENDS roscpp message_runtime sensor_msgs
+#  DEPENDS OpenCV PCL
 )
 
 ###########
@@ -133,12 +133,24 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(grabber src/grabber.cpp)
+
 add_executable(db_cloud_extraction src/db_cloud_extraction.cpp)
+add_dependencies(db_cloud_extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(table_status src/table_status.cpp)
+add_dependencies(table_status ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(table_all src/table_all.cpp)
+add_dependencies(table_all ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(db_table_extraction src/db_table_extraction.cpp)
+add_dependencies(db_table_extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(db_table_maintaining src/db_table_maintaining.cpp)
+add_dependencies(db_table_maintaining ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(viz_convex src/viz_convex.cpp)
+add_dependencies(viz_convex ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #add_executable(tt include/table_detection/table_tool.hpp)
 
 ## Add cmake target dependencies of the executable/library

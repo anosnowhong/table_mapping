@@ -191,7 +191,6 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     return true;
 }
 
-
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "db_cloud_registration");

@@ -1,0 +1,4 @@
+geometry_msgs/Point32 table_centre
+std_msgs/Int32 neighbour
+sensor_msgs/PointCloud2 convex_cloud
+sensor_msgs/PointCloud2 concave_cloud

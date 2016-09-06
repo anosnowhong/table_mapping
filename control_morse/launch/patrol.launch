@@ -32,6 +32,8 @@
 	<node pkg="table_detection" type="db_table_extraction" name="db_table_extraction" output="screen">
 		<param name="normal_angle" value="25.0"/>
 	</node>
+	<node pkg="table_detection" type="db_table_maintaining" name="db_table_maintaining" output="screen">
+	</node>
 
 
     <!-- launch map processing node, get the patrol goal and mark on the map-->

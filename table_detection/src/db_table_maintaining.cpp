@@ -20,8 +20,8 @@
 #include <table_detection/db_table_centre.h>
 #include "table_detection/viz_points.h"
 #include "table_detection/table_tool.hpp"
-#include <table_detection/table_increment.h>
-#include <table_detection/table_increment_arr.h>
+#include <table_detection/table_neighbour.h>
+#include <table_detection/table_neighbour_arr.h>
 
 #define Debug true
 typedef pcl::PointXYZ  Point;
@@ -58,7 +58,7 @@ bool overlap_check()
 }
 
 //cross product calculate size of polygen
-double table_size(strands_perception_msgs::Table& table)
+double table_size(table_detection::Table& table)
 {
 
 }
@@ -68,8 +68,8 @@ bool merge_table_msg()
 {
     //load table shapes
     mongodb_store::MessageStoreProxy table_merge(*nh, "table_merge");
-    std::vector< boost::shared_ptr<strands_perception_msgs::Table> > result_tables;
-    table_merge.query<strands_perception_msgs::Table>(result_tables);
+    std::vector< boost::shared_ptr<table_detection::Table> > result_tables;
+    table_merge.query<table_detection::Table>(result_tables);
 
     //set or load checked_num
     std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
@@ -105,6 +105,10 @@ bool merge_table_msg()
 
 //check if two convex hull have overlap
 bool overlap(){
+
+}
+
+void analyze_data(){
 
 }
 
@@ -154,7 +158,7 @@ bool table_centre_group()
     return true;
     /*
     //TODO:(be careful)indices has at least the size of knn, if no neighbour just set the index 0
-    if(indices[1]!=0){
+    if(indces[1]!=0){
         //delete that neighbour
         if(!merge_able){
             //indices[1]
@@ -171,16 +175,30 @@ void table_increment_nei()
     mongodb_store::MessageStoreProxy table_centre_group(*nh, "table_centre_group");
     std::vector<boost::shared_ptr<geometry_msgs::Polygon> > result_tables;
     table_centre_group.query<geometry_msgs::Polygon>(result_tables,mongo::BSONObj(),mongo::BSONObj(),BSON("_meta.inserted_at"<<1));
+    mongodb_store::MessageStoreProxy table_convex(*nh, "table_convex");
+    std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > convex_info;
+    table_convex.query<sensor_msgs::PointCloud2>(convex_info,mongo::BSONObj(),mongo::BSONObj(),BSON("_meta.inserted_at"<<1));
+    mongodb_store::MessageStoreProxy table_concave(*nh, "table_concave");
+    std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > concave_info;
+    table_concave.query<sensor_msgs::PointCloud2>(concave_info,mongo::BSONObj(),mongo::BSONObj(),BSON("_meta.inserted_at"<<1));
 
+    ROS_INFO("Start calculating increment...");
     //all table cloud kd tree(single scan)
     Table<Point> checker(nh);
     pcl::KdTreeFLANN<Point> kdtree;
-    checker.dbtable_cloud_kdtree("table_clouds", kdtree);
+
+    //the last one is newly inserted, get how many table has been extracted
+    std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
+    table_centre_group.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
+    int t_end = checked_amount[0]->data;
+    int t_begin = t_end - result_tables[result_tables.size()-1]->points.size();
+    //construct kd tree for one round table cloud
+    checker.dbtable_cloud_kdtree("table_clouds", kdtree, t_begin, t_end);
 
     std::vector<int> point_index;
     std::vector<float> point_distance;
-    table_detection::table_increment_arr increment_arr;
-    table_detection::table_increment increment;
+    table_detection::table_neighbour_arr neighbour_arr;
+    table_detection::table_neighbour neighbour;
 
     //different round data
     for(int i=0;i<result_tables.size();i++){
@@ -192,21 +210,25 @@ void table_increment_nei()
             query_p.z = result_tables[i]->points.at(j).z;
             //copy to ros point32 as well
             int nei = kdtree.radiusSearch(query_p,bad_observation_remove_radius,point_index,point_distance);
-            increment.table_centre = result_tables[i]->points.at(j);
-            increment.increment.data = nei;
-            increment_arr.increment_arr.push_back(increment);
+            neighbour.table_centre = result_tables[i]->points.at(j);
+            neighbour.neighbour.data = nei;
+            neighbour.convex_cloud = *convex_info[j];
+            neighbour.concave_cloud = *concave_info[j];
+            neighbour_arr.neighbour_arr.push_back(neighbour);
         }
     }
-    //store the neighbour increment
+    //store the neighbour neighbour
     mongodb_store::MessageStoreProxy table_centre_increment(*nh, "table_centre_increment");
-    table_centre_increment.insert(increment_arr);
+    table_centre_increment.insert(neighbour_arr);
+    ROS_INFO("Done!");
 }
 
 bool merge(table_detection::db_merge::Request& req, table_detection::db_merge::Response& res)
 {
-    //check nearby table shape
-    //
-    return true;
+    Table<Point> tb(nh);
+    tb.overlap_detect("table_centre_increment");
+
+    return false;
 }
 
 bool group_centre(table_detection::db_table_centre::Request& req, table_detection::db_table_centre::Response& res)
@@ -215,6 +237,9 @@ bool group_centre(table_detection::db_table_centre::Request& req, table_detectio
     bool rc = table_centre_group();
     //calculate increment and store
     table_increment_nei();
+    //store round info
+    //mongodb_store::MessageStoreProxy round_info(*nh, "table_clouds");
+    //round_info.insertNamed("")
 
     return rc;
 }
@@ -231,8 +256,6 @@ int main(int argc, char** argv)
     ros::ServiceServer table_srv = nh->advertiseService("db_merge", merge);
     //store one round table centre
     ros::ServiceServer table_centre_srv = nh->advertiseService("db_table_centre", group_centre);
-
-    table_increment_nei();
 
     ros::spin();
 

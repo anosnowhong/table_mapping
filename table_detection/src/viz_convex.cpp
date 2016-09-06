@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <pcl_ros/point_cloud.h>
 #include <mongodb_store/message_store.h>
-#include <strands_perception_msgs/Table.h>
+#include <table_detection/Table.h>
 
 typedef pcl::PointXYZ  Point;
 typedef pcl::PointCloud<Point> pcl_cloud;
@@ -24,8 +24,8 @@ int main(int argc, char** argv)
     ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("table_convex", 1);
 
     mongodb_store::MessageStoreProxy table_store(n, collection);
-    std::vector< boost::shared_ptr<strands_perception_msgs::Table> > result_tables;
-    table_store.query<strands_perception_msgs::Table>(result_tables);
+    std::vector< boost::shared_ptr<table_detection::Table> > result_tables;
+    table_store.query<table_detection::Table>(result_tables);
 
     //publish multiple point cloud msg
     std::vector<sensor_msgs::PointCloud2> cloud_msg;

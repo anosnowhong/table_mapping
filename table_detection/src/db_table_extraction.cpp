@@ -12,7 +12,7 @@
 #include <mongodb_store/message_store.h>
 #include <table_detection/db_table_clouds.h>
 #include <table_detection/db_table.h>
-#include <strands_perception_msgs/Table.h>
+#include <table_detection/Table.h>
 #include <std_msgs/Int32.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/surface/concave_hull.h>
@@ -38,8 +38,9 @@ float std_dev_dist;
 void extract_convex(pcl_cloud::Ptr cloud_in,
                     pcl::PointIndices::Ptr inliers,
                     pcl::ModelCoefficients::Ptr coefficients,
-                    pcl_cloud::Ptr cloud_out,
+                    pcl_cloud::Ptr cloud_hull,
                     pcl_cloud::Ptr cloud_cave)
+
 {
     pcl_cloud::Ptr projected(new pcl_cloud());
 
@@ -52,11 +53,12 @@ void extract_convex(pcl_cloud::Ptr cloud_in,
 
     pcl::ConvexHull<Point> chull;
     chull.setInputCloud (projected);
-    chull.reconstruct (*cloud_out);
+    chull.reconstruct (*cloud_hull);
 
     pcl::ConcaveHull<Point> cavehull;
-    chull.setInputCloud (projected);
-    chull.reconstruct (*cloud_cave);
+    cavehull.setAlpha(0.1);
+    cavehull.setInputCloud (projected);
+    cavehull.reconstruct (*cloud_cave);
 }
 
 //loading msg form collection and merge tables that may linked together
@@ -64,8 +66,8 @@ bool merge_table_msg()
 {
     //load table shapes
     mongodb_store::MessageStoreProxy table_shape(*nh, "table_shapes");
-    std::vector< boost::shared_ptr<strands_perception_msgs::Table> > result_tables;
-    table_shape.query<strands_perception_msgs::Table>(result_tables);
+    std::vector< boost::shared_ptr<table_detection::Table> > result_tables;
+    table_shape.query<table_detection::Table>(result_tables);
 
     //set or load checked_num
     std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
@@ -125,6 +127,10 @@ void outlier_filter_table_centre(pcl_cloud::Ptr cloud_in, pcl_cloud::Ptr cloud_o
     //computer plane center
     //check points distributions
     //remove points far away from centre
+}
+
+void convex_size(){
+
 }
 
 //extract table clouds, convex hull, and convert to msg stored in DB
@@ -233,6 +239,11 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
         }
     }
 
+    pcl_cloud::Ptr cloud_hull(new pcl_cloud());
+    pcl_cloud::Ptr cloud_cave(new pcl_cloud());
+    extract_convex(cloud1,inliers,coefficients,cloud_hull,cloud_cave);
+    //reject some size convex
+
     //store the plane that pass the table filter
     if(store_cloud) {
         ROS_INFO("Storing table cloud (noise & filted)...");
@@ -270,9 +281,6 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     }
 
 
-    pcl_cloud::Ptr cloud_hull(new pcl_cloud());
-    pcl_cloud::Ptr cloud_cave(new pcl_cloud());
-    extract_convex(cloud1,inliers,coefficients,cloud_hull,cloud_cave);
     ROS_INFO("Convex cloud has been extracted contains %lu points", (*cloud_hull).points.size());
 
     if(store_convex){
@@ -304,7 +312,7 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     }
 
     //construct a table msg
-    strands_perception_msgs::Table table_msg;
+    table_detection::Table table_msg;
     table_msg.pose.pose.orientation.w = 1.0;
     table_msg.header.frame_id = "/map";
     table_msg.header.stamp = ros::Time();
@@ -341,7 +349,7 @@ bool extract(table_detection::db_table_clouds::Request &req, table_detection::db
     return rc;
 }
 
-//extract table and construct a strands_perception_msg, store it in DB call this service and pass in a point cloud
+//extract table and construct a table_detection table msg, store it in DB call this service and pass in a point cloud
 bool extract2(table_detection::db_table::Request &req, table_detection::db_table::Response &res)
 {
     //copy cloud
