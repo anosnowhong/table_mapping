@@ -15,6 +15,7 @@
 #include <table_detection/Table.h>
 #include <std_msgs/Int32.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
 #include <pcl/surface/concave_hull.h>
 #include <pcl/filters/conditional_removal.h>
 #include <pcl/filters/radius_outlier_removal.h>
@@ -24,6 +25,7 @@
 
 #define Debug true
 #define PI 3.1415926
+//typedef pcl::PointXYZRGB  Point;
 typedef pcl::PointXYZ  Point;
 typedef pcl::PointCloud<Point> pcl_cloud;
 ros::NodeHandlePtr nh;
@@ -104,7 +106,7 @@ bool merge_table_msg()
 //remove points that are sparsely distributed
 void outlier_filter_statistical(pcl_cloud::Ptr cloud_in, pcl_cloud::Ptr cloud_out)
 {
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+    pcl::StatisticalOutlierRemoval<Point> sor;
     sor.setInputCloud (cloud_in);
     sor.setMeanK (statistical_knn);
     sor.setStddevMulThresh (std_dev_dist);
@@ -115,7 +117,7 @@ void outlier_filter_statistical(pcl_cloud::Ptr cloud_in, pcl_cloud::Ptr cloud_ou
 //remove points if can't find given number of neighbour in given radius
 void outlier_filter_radius(pcl_cloud::Ptr cloud_in, pcl_cloud::Ptr cloud_out)
 {
-    pcl::RadiusOutlierRemoval<pcl::PointXYZ> outrem;
+    pcl::RadiusOutlierRemoval<Point> outrem;
     outrem.setInputCloud(cloud_in);
     outrem.setRadiusSearch(search_radius);
     outrem.setMinNeighborsInRadius (neighbour_required);
@@ -176,9 +178,9 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     outlier_filter_radius(cloud_out,cloud_nonoise);
 
     //normal estimation and filter table plane
-    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    pcl::NormalEstimationOMP<Point, pcl::Normal> ne;
     ne.setInputCloud (cloud_nonoise);
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+    pcl::search::KdTree<Point>::Ptr tree (new pcl::search::KdTree<Point> ());
     ne.setSearchMethod (tree);
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
     ne.setRadiusSearch (0.03);
@@ -353,7 +355,7 @@ bool extract(table_detection::db_table_clouds::Request &req, table_detection::db
 bool extract2(table_detection::db_table::Request &req, table_detection::db_table::Response &res)
 {
     //copy cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<Point>::Ptr cloud_in(new pcl::PointCloud<Point>);
     pcl::fromROSMsg(req.cloud,*cloud_in);
     //pass it to table extraction
     bool rc = extract_table_msg(cloud_in, false, true, true);

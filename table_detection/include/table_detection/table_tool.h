@@ -11,6 +11,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <opencv2/core/core.hpp>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/features/integral_image_normal.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 #ifndef TABLE_MAPPING_TABLE_TOOL_H
 #define TABLE_MAPPING_TABLE_TOOL_H
@@ -33,7 +35,10 @@ public:
     Table(ros::NodeHandlePtr nh_in);
 
 
-    void msg2msg(sensor_msgs::PointCloud2& msg_in, sensor_msgs::PointCloud2& msg_out);
+    /*
+     *
+     */
+    void table_normal();
     /*
      * A point in polygen check
      * run after one round observation

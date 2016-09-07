@@ -12,6 +12,11 @@ Table<Point>::Table(ros::NodeHandlePtr nh_in) {
 }
 
 template <class Point>
+void Table<Point>::table_normal() {
+
+}
+
+template <class Point>
 Point Table<Point>::table_cloud_centre(sensor_msgs::PointCloud2 msg, bool store_point, std::string collection) {
 
     point_type tcentre;
@@ -200,19 +205,6 @@ void Table<Point>::dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN
     }
      */
 
-template <class Point>
-void Table<Point>::msg2msg(sensor_msgs::PointCloud2& msg_in, sensor_msgs::PointCloud2& msg_out){
-
-    msg_out.fields = msg_in.fields;
-    msg_out.data = msg_in.data;
-    msg_out.width = msg_in.width;
-    msg_out.height=msg_in.height;
-    msg_out.header = msg_in.header;
-    msg_out.is_dense = msg_in.is_dense;
-    msg_out.point_step=msg_in.point_step;
-    msg_out.row_step=msg_in.row_step;
-    msg_out.is_bigendian=msg_in.is_bigendian;
-}
 
 /*
  * only compare overlap in one round

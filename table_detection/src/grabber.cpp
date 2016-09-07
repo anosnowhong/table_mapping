@@ -1,15 +1,12 @@
 #include <ros/ros.h>
-//#include <boost/foreach.hpp>
 #include <sensor_msgs/PointCloud2.h>
 #include <table_detection/ROIcloud.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/filters/passthrough.h>
-//#include <pcl/point_types.h>
-//#include <pcl/io/pcd_io.h>
-//#include <boost/lexical_cast.hpp>
 
 #define DBUG false
 
+//typedef pcl::PointXYZRGB  Point;
 typedef pcl::PointXYZ  Point;
 typedef pcl::PointCloud<Point> pcl_cloud;
 
@@ -27,7 +24,7 @@ void callback(const sensor_msgs::PointCloud2 &msg)
 {
     pcl::fromROSMsg(msg, *msg_cloud);
     //filter out point cloud that is too far away
-    pcl::PassThrough<pcl::PointXYZ> pass;
+    pcl::PassThrough<Point> pass;
     pass.setFilterFieldName("z");
     pass.setFilterLimits(min_distance,max_distance);
     pass.setInputCloud(msg_cloud);
