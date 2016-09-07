@@ -31,32 +31,6 @@ int checked_num=0;
 int table_knn;
 float bad_observation_remove_radius;
 
-void extract_convex(pcl_cloud::Ptr cloud_in,
-                    pcl::PointIndices::Ptr inliers,
-                    pcl::ModelCoefficients::Ptr coefficients,
-                    pcl_cloud::Ptr cloud_out)
-{
-    pcl_cloud::Ptr projected(new pcl_cloud());
-
-    pcl::ProjectInliers<Point> proj;
-    proj.setModelType (pcl::SACMODEL_PLANE);
-    proj.setIndices (inliers);
-    proj.setInputCloud (cloud_in);
-    proj.setModelCoefficients (coefficients);
-    proj.filter (*projected);
-
-    pcl::ConcaveHull<Point> chull;
-    chull.setInputCloud (projected);
-    chull.setAlpha (0.1);
-    chull.reconstruct (*cloud_out);
-}
-
-//check two convex hull if have overlap
-bool overlap_check()
-{
-
-}
-
 //cross product calculate size of polygen
 double table_size(table_detection::Table& table)
 {
@@ -100,15 +74,6 @@ bool merge_table_msg()
     }
 
     return true;
-
-}
-
-//check if two convex hull have overlap
-bool overlap(){
-
-}
-
-void analyze_data(){
 
 }
 
@@ -226,9 +191,19 @@ void table_increment_nei()
 bool merge(table_detection::db_merge::Request& req, table_detection::db_merge::Response& res)
 {
     Table<Point> tb(nh);
-    tb.overlap_detect("table_centre_increment");
+    std::vector<std::vector<int> > merge_info;
+    tb.overlap_detect("table_centre_increment", merge_info);
 
-    return false;
+    /*
+    if(Debug){
+        VIZ_Points vv(nh);
+        vv.dbpub_points("table_convex",merge_info[1]);
+    }
+     */
+
+    tb.table_merge(merge_info);
+
+    return true;
 }
 
 bool group_centre(table_detection::db_table_centre::Request& req, table_detection::db_table_centre::Response& res)

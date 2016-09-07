@@ -205,12 +205,49 @@ void Table<Point>::dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN
     }
      */
 
+template <class Point>
+void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index){
+
+    ROS_INFO("Merging tables...");
+    mongodb_store::MessageStoreProxy table(*nh, "table_convex");
+    std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_convex;
+    table.query<sensor_msgs::PointCloud2>(result_convex);
+
+    cloud_ptr cloud_sum(new cloud_type());
+    cloud_ptr cloud_store(new cloud_type());
+    cloud_ptr cloud_hull(new cloud_type());
+
+    for (int i = 0; i < merge_index.size(); i++) {
+
+        for(int j=0;j<merge_index[i].size();j++){
+            pcl::fromROSMsg(*result_convex[merge_index[i][j]], *cloud_store);
+            *cloud_sum += *cloud_store;
+        }
+
+        pcl::ConvexHull<Point> chull;
+        chull.setDimension(2);
+        chull.setInputCloud (cloud_sum);
+        chull.reconstruct (*cloud_hull);
+
+        sensor_msgs::PointCloud2 final_table;
+        pcl::toROSMsg(*cloud_hull, final_table);
+        final_table.header.frame_id =  "/map";
+
+        mongodb_store::MessageStoreProxy table_final(*nh, "final_table");
+        table_final.insert(final_table);
+
+        //clear
+        cloud_sum.reset(new cloud_type());
+    }
+
+
+}
 
 /*
  * only compare overlap in one round
  */
 template <class Point>
-bool Table<Point>::overlap_detect(std::string collection) {
+void Table<Point>::overlap_detect(std::string collection, std::vector<std::vector<int> > &overlap_index) {
 
     mongodb_store::MessageStoreProxy table(*nh, collection);
     std::vector<boost::shared_ptr<table_detection::table_neighbour_arr> > result_tables;
@@ -241,7 +278,6 @@ bool Table<Point>::overlap_detect(std::string collection) {
     std::vector<float> testy;
     std::vector<float> testx;
 
-    std::vector<std::vector<int> > overlap_index;
     std::vector<int> sub_overlap;
     int overlap=0;
 
@@ -330,12 +366,14 @@ bool Table<Point>::overlap_detect(std::string collection) {
     }
 
     //debug
+    /*
     for(int i=0;i<overlap_index.size();i++){
         for(int j=0;j<overlap_index[i].size();j++){
             std::cout<<" "<<overlap_index[i][j];
         }
         std::cout<<std::endl;
     }
+     */
 
     std::vector<int> v_intersection;
     std::vector<int> dest1;
@@ -371,6 +409,7 @@ bool Table<Point>::overlap_detect(std::string collection) {
     }while (stillhave);
 
     std::cout<<overlap_index.size()<<std::endl;
+
     //debug
     mongodb_store::MessageStoreProxy merge(*nh, "merge_info");
     table_detection::table_merge_info merge_info;
@@ -385,6 +424,12 @@ bool Table<Point>::overlap_detect(std::string collection) {
     }
     ROS_INFO("merge done!");
 
+    for(int i=0;i<overlap_index.size();i++){
+        for(int j=0;j<overlap_index[i].size();j++){
+            std::cout<<" "<<overlap_index[i][j];
+        }
+        std::cout<<std::endl;
+    }
 }
 
 template <class Point>
