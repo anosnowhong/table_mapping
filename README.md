@@ -20,10 +20,18 @@ control_morse act as an core progrom for the table_mapping package, it controls 
 * Two representations of table convex and concave hull are store in DB.
 * Merge and Classify tables from one region(overlap)
 * Change detection implemented base on table history stored in DB using statistical method.
+* Visualization tools(launch file) for table stored in MongoDB, view table_detection::Table type msg.
 
 ##table_registration
 ##Features:
-* Register two given point cloud (two point cloud better have overlap area in global space)
+* Register two given point cloud (two point cloud better have overlap area in global space).
 * Call table_deteciton service to extract table plane for new registered clouds.
+* Visualization tools(launch file) for table stored in MongoDB, view sensor::PointCloud2 type msg.
 
-
+#Usage
+To start a whole experiment:
+```
+roscd control_morse/launch
+#This script starts morse simulation, Rviz, Navigation, control_morse core, table detection and registration service.
+./start_morse 
+```
