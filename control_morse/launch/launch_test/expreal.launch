@@ -1,13 +1,12 @@
 <launch>
 
 	<!--mongodb service-->
-	<include file="$(find mongodb_store)/launch/mongodb_store.launch">
-	</include>
+	<!--<include file="$(find mongodb_store)/launch/mongodb_store.launch"></include> -->
 
     <!-- provide service for getmap, and publish ROI cloud which will stored by soma_io to ws_observation-->
     <node pkg="table_detection" type="grabber" name="grabber" output="screen">
         <param name="min_distance" value="0.0"/>
-        <param name="max_distance" value="3.5"/>
+        <param name="max_distance" value="2.5"/>
     </node>
 
     <!--soma_io node communicate with mongoDB to store the ROI cloud for later use -->
@@ -30,6 +29,9 @@
 	<node pkg="table_detection" type="db_cloud_extraction" name="db_cloud_extraction" output="screen">
 	</node>
 	<node pkg="table_detection" type="db_table_extraction" name="db_table_extraction" output="screen">
+		<param name="normal_angle" value="25.0"/>
+	</node>
+	<node pkg="table_detection" type="db_table_maintaining" name="db_table_maintaining" output="screen">
 	</node>
 
 
