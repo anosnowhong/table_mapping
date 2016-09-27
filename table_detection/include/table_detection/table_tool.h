@@ -14,6 +14,7 @@
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/surface/convex_hull.h>
+#include <table_detection/Table.h>
 
 #ifndef TABLE_MAPPING_TABLE_TOOL_H
 #define TABLE_MAPPING_TABLE_TOOL_H

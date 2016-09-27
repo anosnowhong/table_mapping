@@ -107,6 +107,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
 
     //recorde the index of point cloud that can extract a plane
     //use the index to do accurate icp by using the nearby clouds
+    /*
     mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
     registration_operator<Point> reg_icp;
     //requery mongodb get latest result
@@ -187,6 +188,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     }
 
     ROS_INFO("Done. Whole Table has been extracted. ");
+     */
 
     return true;
 }

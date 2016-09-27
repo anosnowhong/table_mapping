@@ -177,6 +177,7 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     pcl_cloud::Ptr cloud_nonoise(new pcl_cloud());
     outlier_filter_radius(cloud_out,cloud_nonoise);
 
+    /*
     //normal estimation and filter table plane
     pcl::NormalEstimationOMP<Point, pcl::Normal> ne;
     ne.setInputCloud (cloud_nonoise);
@@ -205,7 +206,12 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     nor.normal_x = nor.normal_x/normal_length;
     nor.normal_y = nor.normal_y/normal_length;
     nor.normal_z = nor.normal_z/normal_length;
-
+     */
+    //instead of computer normal again, using it from plane model
+    pcl::Normal nor;
+    nor.normal_x =  coefficients->values[0];
+    nor.normal_y =  coefficients->values[1];
+    nor.normal_z =  coefficients->values[2];
     if(Debug){
         std::cout<<nor.normal_x<<std::endl;
         std::cout<<nor.normal_y<<std::endl;
@@ -218,6 +224,7 @@ bool extract_table_msg(pcl_cloud::Ptr cloud_in, bool is_whole, bool store_cloud=
     standard_normal.normal_x = 0.0;
     standard_normal.normal_y = 0.0;
     standard_normal.normal_z = 1.0;
+
     float cosin_angle = (standard_normal.normal_z*nor.normal_z);
     float tmp_angle = acos(cosin_angle) * (180.0/PI);
 

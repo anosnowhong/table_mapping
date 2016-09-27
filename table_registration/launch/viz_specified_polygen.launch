@@ -1,0 +1,7 @@
+<launch>
+	<node pkg="table_registration" type="show" name="show" output="screen">
+	    <rosparam param="specify_index">[0]</rosparam>
+		<param name="collection" value="table_concave"/>
+	</node>
+
+</launch>

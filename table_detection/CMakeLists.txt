@@ -153,6 +153,14 @@ add_executable(viz_convex src/viz_convex.cpp)
 add_dependencies(viz_convex ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #add_executable(tt include/table_detection/table_tool.hpp)
 
+add_executable(data_change test/neighbour_change.cpp)
+add_dependencies(data_change ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(centreprint test/centreprint.cpp)
+add_dependencies(centreprint ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(convexsize test/convex_size.cpp)
+add_dependencies(convexsize ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 
@@ -188,6 +196,19 @@ target_link_libraries(viz_convex
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )
+target_link_libraries(data_change
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(centreprint
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(convexsize
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+#
 #############
 ## Install ##
 #############

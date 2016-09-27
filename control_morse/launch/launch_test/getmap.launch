@@ -4,7 +4,7 @@
     <node pkg="control_morse" type="heartbeat" name="heartbeat" output="screen">
     </node>
     <node pkg="control_morse" type="getmap" name="getmap" output="screen">
-        <param name="search_range" value="20"/>
+        <param name="search_range" value="15"/>
         <param name="goal_waiting_time" value="88"/>
     </node>
     
