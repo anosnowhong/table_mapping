@@ -19,7 +19,7 @@
 #include <table_detection/db_merge.h>
 #include <table_detection/db_table_centre.h>
 #include "table_detection/viz_points.h"
-#include "table_detection/table_tool.hpp"
+#include "table_detection/table_tool.h"
 #include <table_detection/table_neighbour.h>
 #include <table_detection/table_neighbour_arr.h>
 

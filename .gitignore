@@ -39,6 +39,7 @@ PCLV/pclv.pro.user
 
 control_morse/build/*
 table_detection/build/*
+table_detection/.idea/*
 pcl_tools/build/*
 table_registration/build/*
 *swp

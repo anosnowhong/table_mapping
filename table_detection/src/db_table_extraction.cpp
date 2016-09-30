@@ -20,7 +20,7 @@
 #include <pcl/filters/conditional_removal.h>
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/statistical_outlier_removal.h>
-#include "table_detection/table_tool.hpp"
+#include "table_detection/table_tool.h"
 
 
 #define Debug true

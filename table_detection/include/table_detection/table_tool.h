@@ -1,25 +1,43 @@
-//
-//table points , structure, properties
-//also contains some db operations
-//
+#ifndef TABLE_MAPPING_TABLE_TOOL_H
+#define TABLE_MAPPING_TABLE_TOOL_H
 
 #include <ros/ros.h>
 #include <pcl_ros/point_cloud.h>
-#include <table_detection/Table.h>
-#include <table_detection/table_neighbour_arr.h>
 #include <mongodb_store/message_store.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <opencv2/core/core.hpp>
+//PCL HEADERS
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/surface/convex_hull.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/filters/conditional_removal.h>
+#include <pcl/filters/radius_outlier_removal.h>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/surface/concave_hull.h>
+//ROS MESSAGES
+#include <std_msgs/Int32.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <table_detection/Table.h>
+#include <table_detection/table_neighbour_arr.h>
+#include <table_detection/table_merge_info.h>
 
-#ifndef TABLE_MAPPING_TABLE_TOOL_H
-#define TABLE_MAPPING_TABLE_TOOL_H
-
+using namespace std;
 #define Debug true
 
+/*
+ * Table template class provides the ability to process various point cloud data, generate
+ * and save table to database.
+ * Provide ROS entrance for communicating with mongodb_store node.
+ */
 template <class Point>
 class Table{
 
@@ -31,11 +49,39 @@ public:
     typedef typename cloud_type::ConstPtr cloud_const_ptr;
 
     Table();
-
-    //if you want to use mongodb options
+    //create instance for ROS
     Table(ros::NodeHandlePtr nh_in);
+    //used for table plane extraction, init with parameters
+    Table(ros::NodeHandlePtr nh_in, float pn_angle);
 
+    /*
+     * Project points to a 2D plane and then extract convex and concave hull
+     */
+    void plane_convex(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out);
 
+    void plane_concave(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out);
+
+    /*
+     * recursively extract plane, and check their normal angle.
+     * input: point cloud to extract
+     */
+    void tb_extract_it(Table::cloud_ptr cloud_in);
+    /*
+     * table plane extraction method
+     * pure data process, no database operation, function as class method.
+     * return remaining point cloud indices(may still contains plane, iteration is expected to extract all)
+     * return false if no plane detected, otherwise true.
+     */
+    bool tb_extract(Table::cloud_ptr cloud_in);
+    /*
+     * extract possible plane and check normal direction, keep plane that suit the threshold.
+     * Need communicate with mongodb_store
+     * param:
+     *  collection: mongodb collection to store planes.
+     *  threshold: angle to filter out non-horizontal planes
+     *  Note: a int value is stored in given collection to identify old and new data
+     */
+    void tb_detection(std::string collection, bool iteration=false);
     /*
      *
      */
@@ -80,6 +126,13 @@ public:
 private:
     //need init by ros node
     ros::NodeHandlePtr nh;
+    //PARAMETERS
+    //a threshold angle between two normal
+    float normal_angle;
+    const double PI = 3.1415926;
+    //used to describe a plane points(table_inliers) and equation(table_coeffi)
+    pcl::PointIndices::Ptr table_inliers;
+    pcl::ModelCoefficients::Ptr table_coeffi;
 
 };
 #endif //TABLE_MAPPING_TABLE_TOOL_H

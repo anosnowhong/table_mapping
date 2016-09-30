@@ -11,7 +11,5 @@ project(table_mapping)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/control_morse)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/table_detection)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/table_registration)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/PCLV)
-
 
 

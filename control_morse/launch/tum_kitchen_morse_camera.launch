@@ -1,5 +1,5 @@
 <launch>
-  <arg name="env" default="tum_kitchen_exp"/> 
+  <arg name="env" default="tum_kitchen"/> 
 
   <!-- Scitos robot -->
   <include file="$(find strands_morse)/launch/scitos.launch"/>

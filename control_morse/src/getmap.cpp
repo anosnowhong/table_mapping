@@ -10,9 +10,9 @@
 
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
-#include <signal.h>
 
 #include <table_detection/db_table_centre.h>
+#include <table_detection/db_merge.h>
 #include <control_morse/WholeScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <control_morse/Pause.h>
@@ -24,6 +24,7 @@ ros::Publisher vis_pub;
 ros::ServiceClient scan_srv;
 ros::ServiceClient client;
 ros::ServiceClient table_client;
+ros::ServiceClient table_merge;
 control_morse::WholeScan scan_type;
 bool state_pause=false;
 int search_range;
@@ -170,6 +171,9 @@ void map_index(double origin[2], float res, int width, int height, std::vector<c
     table_detection::db_table_centre tidy_up_centres;
     table_client.waitForExistence();
     table_client.call(tidy_up_centres);
+    table_detection::db_merge merge_table;
+    table_merge.waitForExistence();
+    table_merge.call(merge_table);
 
 }
 
@@ -332,6 +336,7 @@ int main(int argc, char **argv)
     scan_srv = n.serviceClient<control_morse::WholeScan>("do_scan");
     client  = n.serviceClient<nav_msgs::GetMap>("static_map");
     table_client  = n.serviceClient<table_detection::db_table_centre>("db_table_centre");
+    table_merge = n.serviceClient<table_detection::db_merge>("db_merge");
 
     ros::Subscriber sub = n.subscribe("/heartbeat",1,pause_thread);
     ros::Subscriber sub2 = n.subscribe("/heartbeat",1,main_thread);

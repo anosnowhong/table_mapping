@@ -1,7 +1,7 @@
 <launch>
 
 	<!--mongodb service-->
-	<include file="$(find mongodb_store)/launch/mongodb_store.launch">
+	<include file="$(find control_morse)/launch/mongodb_store.launch">
 	</include>
 
     <!-- provide service for getmap, and publish ROI cloud which will stored by soma_io to ws_observation-->
