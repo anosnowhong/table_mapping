@@ -147,6 +147,8 @@ add_executable(db_cloud_registration src/db_cloud_registration.cpp)
 add_dependencies(db_cloud_registration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_executable(viz_global src/viz_global_cloud.cpp)
 add_dependencies(viz_global ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(show src/showpolygen.cpp)
+add_dependencies(show ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -159,6 +161,10 @@ target_link_libraries(db_cloud_registration
  )
 
 target_link_libraries(viz_global
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(show
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
         )

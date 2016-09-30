@@ -213,13 +213,20 @@ void Table<Point>::dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN
     }
      */
 
-template<class Point>
-void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index) {
+
+//better use the convex form table centre increment
+template <class Point>
+void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index){
 
     ROS_INFO("Merging tables...");
-    mongodb_store::MessageStoreProxy table(*nh, "table_convex");
-    std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_convex;
-    table.query<sensor_msgs::PointCloud2>(result_convex);
+    //mongodb_store::MessageStoreProxy table(*nh, "table_convex");
+    mongodb_store::MessageStoreProxy table(*nh, "table_centre_increment");
+    //std::vector<boost::shared_ptr<sensor_msgs::PointCloud2> > result_convex;
+    std::vector<boost::shared_ptr<table_detection::table_neighbour_arr> > result_convex;
+    //table.query<sensor_msgs::PointCloud2>(result_convex);
+    table.query<table_detection::table_neighbour_arr>(result_convex);
+
+    int latestone = result_convex.size()-1;
 
     cloud_ptr cloud_sum(new cloud_type());
     cloud_ptr cloud_store(new cloud_type());
@@ -227,22 +234,48 @@ void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index) {
 
     for (int i = 0; i < merge_index.size(); i++) {
 
-        for (int j = 0; j < merge_index[i].size(); j++) {
-            pcl::fromROSMsg(*result_convex[merge_index[i][j]], *cloud_store);
+
+        for(int j=0;j<merge_index[i].size();j++){
+            //pcl::fromROSMsg(*result_convex[merge_index[i][j]], *cloud_store);
+            pcl::fromROSMsg( (*result_convex[latestone]).neighbour_arr[merge_index[i][j]].convex_cloud, *cloud_store);
             *cloud_sum += *cloud_store;
         }
 
         pcl::ConvexHull<Point> chull;
+        //pcl::ConcaveHull<Point> chull;
+        //chull.setAlpha(0.1);
+
         chull.setDimension(2);
         chull.setInputCloud(cloud_sum);
         chull.reconstruct(*cloud_hull);
 
+        /*
         sensor_msgs::PointCloud2 final_table;
         pcl::toROSMsg(*cloud_hull, final_table);
         final_table.header.frame_id = "/map";
 
         mongodb_store::MessageStoreProxy table_final(*nh, "final_table");
         table_final.insert(final_table);
+         */
+
+        //construct a table msg
+        table_detection::Table table_msg;
+        table_msg.pose.pose.orientation.w = 1.0;
+        table_msg.header.frame_id = "/map";
+        table_msg.header.stamp = ros::Time();
+        std::stringstream ss;
+        ss<<i;
+        table_msg.table_id = ss.str();
+        for(int i=0;i<(*cloud_hull).points.size();i++){
+            geometry_msgs::Point32 pp;
+            pp.x = (*cloud_hull).at(i).x;
+            pp.y = (*cloud_hull).at(i).y;
+            pp.z = (*cloud_hull).at(i).z;
+            table_msg.tabletop.points.push_back(pp);
+        }
+
+        mongodb_store::MessageStoreProxy table_final(*nh, "final_table");
+        table_final.insert(table_msg);
 
         //clear
         cloud_sum.reset(new cloud_type());
@@ -262,17 +295,18 @@ void Table<Point>::overlap_detect(std::string collection, std::vector<std::vecto
     table.query<table_detection::table_neighbour_arr>(result_tables);
 
     //int rounds_num = result_tables.size();
+    //int startf;
     //force on first round
     int rounds_num = 1;
     int startf = 0;
 
     /*
     if(result_tables.size()==1){
-        int startf = 0;
+        startf = 0;
     }
     else{
         //the former round info
-        int startf = result_tables[rounds_num-2]->neighbour_arr.size();
+        startf = result_tables[rounds_num-2]->neighbour_arr.size();
     }
      */
 
@@ -292,8 +326,10 @@ void Table<Point>::overlap_detect(std::string collection, std::vector<std::vecto
     ROS_INFO("round size: %lu", result_tables[0]->neighbour_arr.size());
     for (; startf < result_tables[rounds_num - 1]->neighbour_arr.size(); startf++) {
         convex_cloud.reset(new cloud_type());
-        convex_info = (*result_tables[rounds_num - 1]).neighbour_arr[startf].convex_cloud;
-        pcl::fromROSMsg(convex_info, *convex_cloud);
+
+        convex_info = (*result_tables[rounds_num-1]).neighbour_arr[startf].convex_cloud;
+        //convex_info = (*result_tables[rounds_num-1]).neighbour_arr[startf].concave_cloud;
+        pcl::fromROSMsg(convex_info,*convex_cloud);
 
         for (int pp = 0; pp < convex_cloud->size(); pp++) {
             vertx.push_back(convex_cloud->at(pp).x);
@@ -305,8 +341,9 @@ void Table<Point>::overlap_detect(std::string collection, std::vector<std::vecto
         //111 startf=38 39 111-38=x 38+1< 111 38+2< 111 39+1< 111  110+1 < 111 false
         for (int increase = 1; (startf + increase) < result_tables[rounds_num - 1]->neighbour_arr.size(); increase++) {
             test_cloud.reset(new cloud_type());
-            test_info = result_tables[rounds_num - 1]->neighbour_arr[startf + increase].convex_cloud;
-            pcl::fromROSMsg(test_info, *test_cloud);
+            test_info = result_tables[rounds_num-1]->neighbour_arr[startf+increase].convex_cloud;
+            //test_info = result_tables[rounds_num-1]->neighbour_arr[startf+increase].concave_cloud;
+            pcl::fromROSMsg(test_info,*test_cloud);
             //std::cout<<"test cloud size: "<<test_cloud->size()<<std::endl;
             //TODO::if without cout not excute???
             for (int pt = 0; pt < test_cloud->size(); pt++) {

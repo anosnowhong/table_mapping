@@ -133,6 +133,24 @@ bool table_centre_group()
 
 }
 
+//distance based filter, distance measured by point from table centre
+void outlier_remove(pcl_cloud::Ptr cloud_in, pcl_cloud::Ptr cloud_out, Point pp){
+    float threshold = 1.2;
+
+    float dis,xx,yy, xc,yc;
+    xc=pp.x;
+    yc=pp.y;
+
+    for(int i=0;i<cloud_in->points.size();i++){
+        xx = cloud_in->points.at(i).x;
+        yy = cloud_in->points.at(i).y;
+
+        dis = sqrt( pow((xx-xc),2)+pow((yy-yc),2) );
+        if(dis<threshold){
+            cloud_out->push_back(cloud_in->points.at(i));
+        }
+    }
+}
 //need at least 2 round to analyse data.
 void table_increment_nei()
 {
@@ -160,6 +178,10 @@ void table_increment_nei()
     //construct kd tree for one round table cloud
     checker.dbtable_cloud_kdtree("table_clouds", kdtree, t_begin, t_end);
 
+    /*
+     *  use point cloud from one round
+     *  get neighbour query result for all table centre
+     */
     std::vector<int> point_index;
     std::vector<float> point_distance;
     table_detection::table_neighbour_arr neighbour_arr;
@@ -177,7 +199,21 @@ void table_increment_nei()
             int nei = kdtree.radiusSearch(query_p,bad_observation_remove_radius,point_index,point_distance);
             neighbour.table_centre = result_tables[i]->points.at(j);
             neighbour.neighbour.data = nei;
-            neighbour.convex_cloud = *convex_info[j];
+
+            //Remove outliers
+            Point pp;
+            pp.x = result_tables[i]->points.at(j).x;
+            pp.y = result_tables[i]->points.at(j).y;
+            pp.z = result_tables[i]->points.at(j).z;
+            pcl_cloud::Ptr cloudin(new pcl_cloud());
+            pcl_cloud::Ptr cloudout(new pcl_cloud());
+            pcl::fromROSMsg(*convex_info[j],*cloudin);
+            outlier_remove(cloudin,cloudout,pp);
+            sensor_msgs::PointCloud2 convex_in;
+            pcl::toROSMsg(*cloudout,convex_in);
+
+            neighbour.convex_cloud = convex_in;
+
             neighbour.concave_cloud = *concave_info[j];
             neighbour_arr.neighbour_arr.push_back(neighbour);
         }
@@ -197,7 +233,7 @@ bool merge(table_detection::db_merge::Request& req, table_detection::db_merge::R
     /*
     if(Debug){
         VIZ_Points vv(nh);
-        vv.dbpub_points("table_convex",merge_info[1]);
+        vv.dbpub_points("table_convex",merge_info[2]);
     }
      */
 

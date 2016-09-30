@@ -83,6 +83,14 @@ add_dependencies(table_all ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 add_executable(viz_convex src/viz_convex.cpp)
 add_dependencies(viz_convex ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(data_change test/neighbour_change.cpp)
+add_dependencies(data_change ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(centreprint test/centreprint.cpp)
+add_dependencies(centreprint ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(convexsize test/convex_size.cpp)
+add_dependencies(convexsize ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(db_cloud_extraction
         table_core
@@ -119,3 +127,15 @@ target_link_libraries(viz_convex
         ${PCL_LIBRARIES}
         )
 
+target_link_libraries(data_change
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(centreprint
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
+target_link_libraries(convexsize
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )

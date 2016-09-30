@@ -1,7 +1,7 @@
 <launch>
 	<node pkg="table_registration" type="viz_global" name="viz_global" output="screen">
-	    <rosparam param="specify_index">[0]</rosparam>
-		<param name="collection" value="table_centre_increment"/>
+	    <rosparam param="specify_index">[35]</rosparam>
+		<param name="collection" value="table_concave"/>
 	</node>
 
 </launch>

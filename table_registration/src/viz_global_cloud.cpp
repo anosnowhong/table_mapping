@@ -8,7 +8,7 @@
 #include <table_registration/ICP_Cloud.h>
 #include <table_detection/table_neighbour_arr.h>
 
-#define Debug true
+#define Debug false
 
 int main(int argc, char** argv)
 {
@@ -21,6 +21,17 @@ int main(int argc, char** argv)
     std::vector<int> indices;
     pn.param<std::string>("collection", collection, "global_clouds");
     pn.getParam("specify_index",indices);
+
+    //given two indices will include all indcies between the give two value
+    if(indices.size()==2){
+        ROS_INFO("Loading cloud between indices");
+        std::sort(indices.begin(),indices.end());
+        int diff = indices[1]-indices[0];
+        int i_start = indices[0];
+        for(int i=i_start;i<(i_start+diff);i++){
+            indices.push_back(i);
+        }
+    }
 
     ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("/global_cloud",10);
     mongodb_store::MessageStoreProxy messageStore(n,collection);
