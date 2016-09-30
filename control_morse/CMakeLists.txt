@@ -5,17 +5,21 @@ project(control_morse)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-	nav_msgs
-	std_msgs
-	actionlib
-	move_base_msgs
-	roscpp
-	rospy
-	)
+        nav_msgs
+        std_msgs
+        sensor_msgs
+        actionlib
+        move_base_msgs
+        roscpp
+        rospy
+        )
 
 find_package(OpenCV REQUIRED)
-find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
+
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 include_directories(include)
 
@@ -52,19 +56,19 @@ include_directories(include)
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+# Generate messages in the 'msg' folder
+add_message_files(
+        FILES
+        sweep_scan.msg
+)
 
 # Generate services in the 'srv' folder
 add_service_files(
-	FILES
-	Pause.srv
-    WholeScan.srv
-	)
+        FILES
+        Pause.srv
+        WholeScan.srv
+        ROIcloud.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -74,11 +78,12 @@ add_service_files(
 # )
 
 # Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   std_msgs
-   nav_msgs
- )
+generate_messages(
+        DEPENDENCIES
+        std_msgs
+        sensor_msgs
+        nav_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -110,11 +115,11 @@ add_service_files(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-	#  INCLUDE_DIRS include
-	#  LIBRARIES trash
-	#  CATKIN_DEPENDS nav_msgs roscpp rospy
-	#  DEPENDS system_lib
-	)
+        #  INCLUDE_DIRS include
+        #  LIBRARIES trash
+        #  CATKIN_DEPENDS nav_msgs roscpp rospy
+        #  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -124,8 +129,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-	${catkin_INCLUDE_DIRS}
-	)
+        ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(trash
@@ -148,6 +153,8 @@ add_dependencies(ptu_control ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORT
 add_executable(heartbeat src/heartbeat.cpp)
 add_dependencies(heartbeat ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(grabber src/grabber.cpp)
+add_dependencies(grabber ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(trash_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -157,17 +164,22 @@ add_dependencies(heartbeat ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(getmap
-	${catkin_LIBRARIES}
-	${OpenCV_LIBS}
-	${VTK_LIBRARIES}
-	)
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        )
 
 target_link_libraries(ptu_control
-		${catkin_LIBRARIES}
-		)
+        ${catkin_LIBRARIES}
+        )
+
 target_link_libraries(heartbeat
-		${catkin_LIBRARIES}
-		)
+        ${catkin_LIBRARIES}
+        )
+
+target_link_libraries(grabber
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
 #############
 ## Install ##
 #############

@@ -27,6 +27,15 @@ int checked_num=0;
 //store strands_perception_msg to DB
 bool extract(table_detection::db_extract::Request &req, table_detection::db_extract::Response &res)
 {
+
+    //TODO: function input:collection of global clouds
+
+    //TODO: Redefine the msg, make mongodb efficient work for a long time.
+
+    //TODO: Support for static data.
+
+
+
     ROS_INFO("Starting extract table");
     //query point cloud and tf
     mongodb_store::MessageStoreProxy global_clouds(*nh,"global_clouds");
