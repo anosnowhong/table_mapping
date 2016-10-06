@@ -8,6 +8,7 @@
 #include <table_detection/db_table_clouds.h>
 #include <table_detection/db_table.h>
 #include <std_msgs/Int32.h>
+#include "table_detection/table_tool.h"
 
 /* #A backend node that does the extraction work with MongoDB.
  * Load point cloud data from global_cloud collection.
@@ -16,90 +17,29 @@
  * store to table_plane collection
  * */
 
-ros::ServiceClient table_client;
-ros::ServiceClient table_client2;
 ros::NodeHandlePtr nh;
 
 int checked_num=0;
+float normal_threshold;
+float search_radius;
+int neighbour_required;
+int statistical_knn;
+float std_dev_dist;
 
-#define Debug false
-
-//store strands_perception_msg to DB
 bool extract(table_detection::db_extract::Request &req, table_detection::db_extract::Response &res)
 {
-
-    //TODO: function input:collection of global clouds
-
+    ROS_INFO("Starting extract table...");
+    Table<pcl::PointXYZ> ex_tb(nh, normal_threshold);
+    //extract table planes and store in collection 'table_clouds'
+    ex_tb.tb_detection("table_clouds");
     //TODO: Redefine the msg, make mongodb efficient work for a long time.
-
     //TODO: Support for static data.
-
-
-
-    ROS_INFO("Starting extract table");
-    //query point cloud and tf
-    mongodb_store::MessageStoreProxy global_clouds(*nh,"global_clouds");
-    //store point cloud that been transformed
-    mongodb_store::MessageStoreProxy table_store(*nh,"table_planes");
-    std::vector< boost::shared_ptr<sensor_msgs::PointCloud2> > result_pc2;
-
-
-    //search all point clouds
-    global_clouds.query<sensor_msgs::PointCloud2>(result_pc2);
-
-    //load check_num form mongodb, this value record how many global clouds has been checked.
-    std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
-    table_store.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
-    if(checked_amount.size() == 0){
-        std_msgs::Int32 tmp;
-        tmp.data = checked_num;
-        table_store.insertNamed("checked_num",tmp);
-    }
-    else{
-        //load record form mongodb
-        checked_num = checked_amount[0]->data;
-    }
-
-    ROS_INFO("Cloud found: %lu, already checked: %d", result_pc2.size(), checked_num);
-
-    for(;checked_num<result_pc2.size();checked_num++)
-    {
-        //call the extraction service, check if there is a table in the cloud
-        table_client.waitForExistence();
-        table_detection::db_table req;
-        req.request.cloud = *result_pc2[checked_num];
-        bool rc = table_client.call(req);
-
-        //response with index of cloud that may contain a table plane
-        if(rc)
-            res.cloud_has_plane.push_back(checked_num);
-    }
-    //update check_num in mongodb
-    std_msgs::Int32 tmp;
-    tmp.data = checked_num;
-    table_store.updateNamed("checked_num",tmp);
-
-    if(Debug)
-    {
-        for(int i=0;i<res.cloud_has_plane.size();i++)
-            std::cout<<res.cloud_has_plane[i]<<std::endl;
-    }
-    return true;
+    ROS_INFO("Done table extraction!");
 }
 
-//store the point cloud of table
 bool extract_whole_table(table_detection::db_extract_whole_table::Request &req, table_detection::db_extract_whole_table::Response &res)
 {
     ROS_INFO("Starting extract whole table");
-
-    while(!table_client2.waitForExistence())
-        ROS_INFO("waiting for db_table_clouds service");
-    table_detection::db_table_clouds cc;
-    cc.request.cloud = req.cloud;
-    bool rc = table_client2.call(cc);
-    if(!rc)
-        ROS_INFO("db_table_clouds service return FALSE!!!");
-
     return true;
 }
 
@@ -108,9 +48,14 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "db_cloud_extraction");
     nh.reset(new ros::NodeHandle);
     ros::NodeHandle pn("~");
+    pn.param<float>("normal_threshold", normal_threshold, 15.0);
+    //filter1
+    pn.param<float>("search_radius", search_radius, 0.8);
+    pn.param<int>("neighbour_required", neighbour_required, 20);
+    //filter2
+    pn.param<int>("statistical_knn", statistical_knn, 50);
+    pn.param<float>("std_dev_dist", std_dev_dist, 1.0);
 
-    table_client=nh->serviceClient<table_detection::db_table>("db_table");
-    table_client2=nh->serviceClient<table_detection::db_table_clouds>("db_table_clouds");
     //table parts
     ros::ServiceServer ext_srv = nh->advertiseService("db_extract", extract);
     //more complete table

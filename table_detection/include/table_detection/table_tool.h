@@ -55,6 +55,10 @@ public:
     Table(ros::NodeHandlePtr nh_in, float pn_angle);
 
     /*
+     *
+     */
+    double table_convex_size(Table::cloud_ptr convex_cloud);
+    /*
      * Project points to a 2D plane and then extract convex and concave hull
      */
     void plane_convex(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out);
@@ -92,8 +96,8 @@ public:
     void table_merge(std::vector<std::vector<int> > merge_index);
     /*
      * A point in polygen check
-     * run after one round observation
-     * return ture if merge able
+     * run after one round of observation.
+     * return ture if merge-able
      */
     void overlap_detect(std::string collection, std::vector<std::vector<int> > &overlap_index);
     /*
@@ -124,15 +128,25 @@ public:
     void dbtable_cloud_centre(std::string collection, std::vector<point_type>& table_centre_index);
 
 private:
+    static constexpr double PI = 3.1415926;
     //need init by ros node
     ros::NodeHandlePtr nh;
     //PARAMETERS
     //a threshold angle between two normal
     float normal_angle;
-    const double PI = 3.1415926;
     //used to describe a plane points(table_inliers) and equation(table_coeffi)
     pcl::PointIndices::Ptr table_inliers;
     pcl::ModelCoefficients::Ptr table_coeffi;
+
+    //remove points that are sparsely distributed
+    int statistical_knn;
+    int std_dev_dist;
+    int search_radius;
+    int neighbour_required;
+    void table_statistical_filter(cloud_ptr cloud_in, cloud_ptr cloud_out);
+    void table_centre_filter(cloud_ptr cloud_in, cloud_ptr cloud_out);
+    //remove points if can't find given number of neighbour in given radius
+    void table_radius_filter(cloud_ptr cloud_in, cloud_ptr cloud_out);
 
 };
 #endif //TABLE_MAPPING_TABLE_TOOL_H

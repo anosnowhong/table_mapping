@@ -55,24 +55,6 @@ Point Table<Point>::table_cloud_centre(sensor_msgs::PointCloud2 msg, bool store_
     return tcentre;
 }
 
-/*
-cv::Point3f Table_Tool::table_centre(strands_perception_msgs::Table msg) {
-    cv::Point3f tcentre;
-    for(int j=0;j<result_tables[i]->tabletop.points.size();j++){
-        tcentre.x += msg.tabletop.points.at(j).x;
-        tcentre.y += msg.tabletop.points.at(j).y;
-        tcentre.z += msg.tabletop.points.at(j).z;
-    }
-
-    float amount = msg.tabletop.points.size();
-    tcentre.x = tcentre.x/amount;
-    tcentre.y = tcentre.y/amount;
-    tcentre.z = tcentre.z/amount;
-
-    return tcentre;
-}
- */
-
 template<class Point>
 void Table<Point>::dbtable_cloud_centre(std::string collection, std::vector<point_type> &table_centre_index) {
     //load table cloud (plane that extracted form single scan)
@@ -177,42 +159,6 @@ void Table<Point>::dbtable_cloud_kdtree(std::string collection, pcl::KdTreeFLANN
     kdtree.setInputCloud(all_table_clouds);
 }
 
-/*
-    if (Debug) {
-        ROS_INFO("table centre number: %lu", table_center_index.size());
-        //publish and view once
-        VIZ_Points vv(nh, "/table_centers");
-        vv.pub_points(table_center_index);
-    }
-
-    //construct kdtree from index
-    cv::flann::KDTreeIndexParams index_params;
-    cv::flann::Index kdtree(cv::Mat(table_center_index).reshape(1),index_params);
-    std::vector<float> query;
-    std::vector<int> indices;
-    std::vector<float> dists;
-
-    for(int i=0;i<table_center_index.size();i++){
-        query.push_back(table_center_index[i].x);
-        query.push_back(table_center_index[i].y);
-        //don't need param
-        kdtree.knnSearch(query,indices,dists,table_knn);
-
-        //check merge-able
-        bool merge_able;
-        merge_able=false;
-
-        //TODO:(be careful)indices has at least the size of knn, if no neighbour just set the index 0
-        if(indices[1]!=0){
-            //delete that neighbour
-            if(!merge_able){
-                //indices[1]
-
-            }
-        }
-    }
-     */
-
 template<class Point>
 void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index) {
 
@@ -251,9 +197,6 @@ void Table<Point>::table_merge(std::vector<std::vector<int> > merge_index) {
 
 }
 
-/*
- * only compare overlap in one round
- */
 template<class Point>
 void Table<Point>::overlap_detect(std::string collection, std::vector<std::vector<int> > &overlap_index) {
 
@@ -491,7 +434,7 @@ void Table<Point>::merge_table_centre(std::string collection) {
 }
 
 template<class Point>
-void Table<Point>::tb_detection(std::string collection, bool iteration=false) {
+void Table<Point>::tb_detection(std::string collection, bool iteration) {
     int checked_num = 0;
     //query point cloud and tf
     mongodb_store::MessageStoreProxy global_clouds(*nh, "global_clouds");
@@ -506,6 +449,7 @@ void Table<Point>::tb_detection(std::string collection, bool iteration=false) {
 
     //load check_num form mongodb, this value record how many global clouds has been checked.
     std::vector<boost::shared_ptr<std_msgs::Int32> > checked_amount;
+    //get how many global_clouds have been checked, and extract plane from those clouds.
     plane_store.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
     if (checked_amount.size() == 0) {
         std_msgs::Int32 tmp;
@@ -548,7 +492,7 @@ void Table<Point>::tb_detection(std::string collection, bool iteration=false) {
 
         pcl::ExtractIndices<Point> extract;
         extract.setInputCloud (table_ext);
-        extract.setIndices (single_ext);
+        extract.setIndices (table_inliers);
         extract.setNegative (false);
         extract.filter (*store_plane);
 
@@ -577,8 +521,8 @@ void Table<Point>::tb_detection(std::string collection, bool iteration=false) {
 
 template <class Point>
 bool Table<Point>::tb_extract(Table::cloud_ptr cloud_in) {
-    cloud_type::Ptr cloud1(new cloud_type());
-    cloud_type::Ptr cloud_remain(new cloud_type());
+    cloud_ptr cloud1(new cloud_type());
+    cloud_ptr cloud_remain(new cloud_type());
 
     //filter out range that may not be a table plane
     pcl::PassThrough<Point> pass;
@@ -605,14 +549,14 @@ bool Table<Point>::tb_extract(Table::cloud_ptr cloud_in) {
     }
 
     //filter out noise
-    cloud_type::Ptr cloud_nonoise(new cloud_type());
+    cloud_ptr cloud_nonoise(new cloud_type());
     //TODO: fileter noise
     //outlier_filter_radius(cloud_out, cloud_nonoise);
 
     pcl::Normal nor;
-    nor.normal_x = coefficients->values[0];
-    nor.normal_y = coefficients->values[1];
-    nor.normal_z = coefficients->values[2];
+    nor.normal_x = table_coeffi->values[0];
+    nor.normal_y = table_coeffi->values[1];
+    nor.normal_z = table_coeffi->values[2];
     pcl::Normal standard_nor;
     standard_nor.normal_x =  standard_nor.normal_y = 0.0;
     standard_nor.normal_z = 1.0;
@@ -630,6 +574,7 @@ bool Table<Point>::tb_extract(Table::cloud_ptr cloud_in) {
         if ((180.0 - tmp_angle) < normal_angle) {
             printf("Normal direction meet requirement %f, angle calculated is: 180.0-%f=%f. \n", normal_angle,
                    tmp_angle, 180.0 - tmp_angle);
+            return true;
         }
         else {
             printf("Normal direction exceed threshold %f, angle calculated is: 180.0-%f=%f. skip.\n", normal_angle,
@@ -640,6 +585,7 @@ bool Table<Point>::tb_extract(Table::cloud_ptr cloud_in) {
     else {
         if (tmp_angle < normal_angle) {
             printf("Normal direction meet requirement angle %f, angle calculated is %f\n", normal_angle, tmp_angle);
+            return true;
         }
         else {
             printf("Normal direction exceed threshold %f, angle calculated is: %f. skip.\n", normal_angle, tmp_angle);
@@ -650,7 +596,7 @@ bool Table<Point>::tb_extract(Table::cloud_ptr cloud_in) {
 
 template <class Point>
 void Table<Point>::tb_extract_it(Table::cloud_ptr cloud_in) {
-
+    //TODO:iteration is more efficient than recursive?
     cloud_ptr cloud_remain(new cloud_type());
     bool rc = tb_extract(cloud_in);
     if(!rc)
@@ -673,11 +619,11 @@ void Table<Point>::plane_convex(Table::cloud_ptr cloud_in, Table::cloud_ptr clou
 
     Table::cloud_ptr projected(new Table::cloud_type());
 
-    pcl::projectinliers<point> proj;
-    proj.setmodeltype (pcl::sacmodel_plane);
-    proj.setindices (table_inliers);
-    proj.setinputcloud (cloud_in);
-    proj.setmodelcoefficients (table_coeffi);
+    pcl::ProjectInliers<point_type> proj;
+    proj.setModelType(pcl::SACMODEL_PLANE);
+    proj.setIndices(table_inliers);
+    proj.setInputCloud(cloud_in);
+    proj.setModelCoefficients(table_coeffi);
     proj.filter (*projected);
 
     pcl::ConvexHull<Point> chull;
@@ -690,11 +636,11 @@ template <class Point>
 void Table<Point>::plane_concave(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out) {
 
     Table::cloud_ptr projected(new Table::cloud_type());
-    pcl::projectinliers<point> proj;
-    proj.setmodeltype (pcl::sacmodel_plane);
-    proj.setindices (table_inliers);
-    proj.setinputcloud (cloud_in);
-    proj.setmodelcoefficients (table_coeffi);
+    pcl::ProjectInliers<point_type> proj;
+    proj.setModelType(pcl::SACMODEL_PLANE);
+    proj.setIndices(table_inliers);
+    proj.setInputCloud(cloud_in);
+    proj.setModelCoefficients(table_coeffi);
     proj.filter (*projected);
 
     pcl::ConcaveHull<Point> cavehull;
@@ -703,3 +649,37 @@ void Table<Point>::plane_concave(Table::cloud_ptr cloud_in, Table::cloud_ptr clo
     cavehull.reconstruct (*cloud_out);
 }
 
+template <class Point>
+double Table<Point>::table_convex_size(Table::cloud_ptr convex_cloud){
+    double convex_size;
+    return convex_size;
+}
+
+template <class Point>
+void Table<Point>::table_statistical_filter(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out) {
+    pcl::StatisticalOutlierRemoval<Point> sor;
+    sor.setInputCloud (cloud_in);
+    sor.setMeanK (statistical_knn);
+    sor.setStddevMulThresh (std_dev_dist);
+    sor.filter (*cloud_out);
+    ROS_INFO("Statistical Remover, Before: %lu After: %lu",cloud_in->size(),cloud_out->size());
+}
+
+template <class Point>
+void Table<Point>::table_centre_filter(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out) {
+    //computer plane center
+    //check points distributions
+    //remove points far away from centre
+}
+
+template <class Point>
+void Table<Point>::table_radius_filter(Table::cloud_ptr cloud_in, Table::cloud_ptr cloud_out) {
+    pcl::RadiusOutlierRemoval<Point> outrem;
+    outrem.setInputCloud(cloud_in);
+    outrem.setRadiusSearch(search_radius);
+    outrem.setMinNeighborsInRadius (neighbour_required);
+    outrem.filter (*cloud_out);
+}
+
+template class Table<pcl::PointXYZ>;
+template class Table<pcl::PointXYZRGB>;

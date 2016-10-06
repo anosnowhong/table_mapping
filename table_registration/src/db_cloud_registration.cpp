@@ -20,7 +20,7 @@ typedef boost::shared_ptr<sensor_msgs::PointCloud2> PointCloud2Ptr;
 typedef pcl::PointXYZ  Point;
 typedef pcl::PointCloud<Point> pcl_cloud;
 
-#define Debug false
+#define Debug true
 
 ros::NodeHandlePtr nh;
 int pan_interval = 30;
@@ -105,6 +105,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     for(int i=0;i< plane_num;i++)
         plane_index.push_back(to_extract.response.cloud_has_plane[i]);
 
+    /*
     //recorde the index of point cloud that can extract a plane
     //use the index to do accurate icp by using the nearby clouds
     mongodb_store::MessageStoreProxy icp_cloud(*nh,"icp_clouds");
@@ -187,6 +188,7 @@ bool to_global(table_registration::ToGlobal::Request &req, table_registration::T
     }
 
     ROS_INFO("Done. Whole Table has been extracted. ");
+     */
 
     return true;
 }

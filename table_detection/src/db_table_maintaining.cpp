@@ -31,52 +31,6 @@ int checked_num=0;
 int table_knn;
 float bad_observation_remove_radius;
 
-//cross product calculate size of polygen
-double table_size(table_detection::Table& table)
-{
-
-}
-
-//loading msg form collection and merge tables that may linked together
-bool merge_table_msg()
-{
-    //load table shapes
-    mongodb_store::MessageStoreProxy table_merge(*nh, "table_merge");
-    std::vector< boost::shared_ptr<table_detection::Table> > result_tables;
-    table_merge.query<table_detection::Table>(result_tables);
-
-    //set or load checked_num
-    std::vector< boost::shared_ptr<std_msgs::Int32> > checked_amount;
-    table_merge.queryNamed<std_msgs::Int32>("checked_num", checked_amount);
-    if(checked_amount.size() == 0){
-        std_msgs::Int32 tmp;
-        tmp.data = checked_num;
-        table_merge.insertNamed("checked_num",tmp);
-    }
-    else{
-        //load record form mongodb
-        checked_num = checked_amount[0]->data;
-    }
-    ROS_INFO("Found %lu table shapes, already checked %d", result_tables.size(), checked_num);
-    //extract points from msg
-
-    pcl_cloud::Ptr new_cloud(new pcl_cloud());
-    for(int j=0;j<result_tables.size();j++){
-
-        for(int i=0;i<(*result_tables[j]).tabletop.points.size();i++){
-            Point tt;
-            tt.x = (*result_tables[j]).tabletop.points[i].x;
-            tt.y = (*result_tables[j]).tabletop.points[i].y;
-            tt.z = (*result_tables[j]).tabletop.points[i].z;
-            new_cloud->push_back(tt);
-        }
-
-    }
-
-    return true;
-
-}
-
 bool table_centre_group()
 {
     //load table centres and visualization
